@@ -1,0 +1,28 @@
+name: CustomMobs
+version: '${project.version}'
+main: com.juanp.custommobs.CustomMobsPlugin
+api-version: '1.21'
+author: Juan Pablo
+description: Mobs custom definidos por YAML, invocables por crafteo, con vinculo a Teams.
+website: https://github.com/juanp
+
+softdepend:
+  - Teams
+  - LibsDisguises
+  - LuckPerms
+
+commands:
+  custommobs:
+    description: Administracion de CustomMobs.
+    usage: /custommobs <reload|list|give|spawn|cuota>
+    aliases: [cmobs, cm]
+    # Sin 'permission' aqui a proposito: el permiso se comprueba en el codigo, por
+    # subcomando, para que un jugador raso pueda usar 'cuota' y ver su propio cupo.
+
+permissions:
+  custommobs.player:
+    description: Permite invocar mobs con los huevos custom.
+    default: true
+  custommobs.admin:
+    description: Acceso a los comandos de administracion de CustomMobs.
+    default: op

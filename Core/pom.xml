@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.juanp.custommobs</groupId>
+        <artifactId>CustomMobs</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>CustomMobs-Core</artifactId>
+    <name>CustomMobs Core</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.juanp.custommobs</groupId>
+            <artifactId>CustomMobs-API</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>${paper.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Teams 1.0.2 (com.hites.godxteam). Se compila contra su API publica;
+             en tiempo de ejecucion es opcional (softdepend). -->
+        <dependency>
+            <groupId>com.hites.godxteam</groupId>
+            <artifactId>teams-api</artifactId>
+            <version>${teams.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- LibsDisguises 26.9.24 (me.libraryaddict). Disfraces opcionales para dar
+             apariencia a los mobs; en tiempo de ejecucion es opcional (softdepend). -->
+        <dependency>
+            <groupId>me.libraryaddict</groupId>
+            <artifactId>libsdisguises</artifactId>
+            <version>${libsdisguises.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- LuckPerms 5.5: se usa solo para LEER el grupo del jugador y con el su cupo
+             de mobs. Los permisos van por el sistema nativo de Bukkit, asi que el plugin
+             funciona sin LuckPerms (todos caen al grupo 'default'). -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>${luckperms.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- packetevents: lo exige la API de LibsDisguises al compilar. En el servidor
+             ya esta instalado como plugin; no se empaqueta. -->
+        <dependency>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
+            <version>${packetevents.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>CustomMobs-${project.version}</finalName>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>com.juanp.custommobs:CustomMobs-API</include>
+                                </includes>
+                            </artifactSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

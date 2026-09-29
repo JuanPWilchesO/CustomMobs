@@ -1,0 +1,56 @@
+# CustomMobs - configuracion general
+debug: false
+
+targeting:
+  # Radio en bloques para buscar objetivos alrededor del soldado.
+  radius: 16.0
+  # Cada cuantos ticks se revisan los objetivos (20 ticks = 1 segundo).
+  interval-ticks: 20
+
+  # ---------------------------------------------------------------------------
+  # Politica de ataque contra JUGADORES (los monstruos hostiles se atacan igual).
+  # Cada mob puede sobrescribirla en su propio yml con:
+  #     targets:
+  #       players: <modo>
+  #
+  #   never       -> nunca ataca jugadores. Mob de apoyo puramente PvE.
+  #   enemies     -> solo si Teams los marca como enemigos.
+  #                  OJO: Teams 1.0.2 nunca llena esa lista, hoy equivale a never.
+  #   non-allies  -> ataca a todo jugador que no sea de su team ni aliado.
+  #   defensive   -> neutral por defecto; se vuelve hostil contra quien agreda a
+  #                  su bando (dueno, companeros, aliados, o mobs de ellos).
+  # ---------------------------------------------------------------------------
+  player-mode: defensive
+
+  # Solo para 'defensive': cuanto dura la hostilidad ganada por agresion.
+  aggro-duration-seconds: 120
+  # Radio en bloques en el que un mob percibe agresiones contra su bando.
+  aggro-watch-radius: 24.0
+  # Si tambien reacciona cuando el agredido es un mob del mismo bando.
+  aggro-on-friendly-mobs: true
+
+craft:
+  # Si el huevo custom se consume al invocar el mob.
+  consume-egg: true
+
+skills:
+  # Cada cuantos ticks se evaluan las skills de cada mob (20 ticks = 1 segundo).
+  interval-ticks: 20
+
+permissions:
+  # Permiso para usar los huevos custom. Se comprueba con el sistema de permisos de
+  # Bukkit, asi que sirve cualquier plugin (LuckPerms incluido).
+  player: custommobs.player
+  # Permiso para los comandos de administracion.
+  admin: custommobs.admin
+
+limits:
+  # Cupo de mobs de jugador para quien no tenga grupo mapeado abajo.
+  # Al alcanzarlo, sus huevos dejan de invocar. 0 = sin limite.
+  default-player-mobs: 3
+  # Cupo por grupo de LuckPerms. Si el jugador pertenece a varios grupos gana el
+  # cupo mas alto. Sin LuckPerms instalado, todos caen en default-player-mobs.
+  groups:
+    default: 3
+    vip: 5
+    staff: 10

@@ -1,0 +1,14 @@
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+*.log
+
+# Contexto del asistente: no forma parte del plugin.
+SOUL.md
+USER.md
+AGENTS.md
+memory/
+IDENTITY.md
+MEMORY.md

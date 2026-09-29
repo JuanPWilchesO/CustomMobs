@@ -1,0 +1,48 @@
+package com.juanp.custommobs.audio;
+
+import com.juanp.custommobs.mob.MobService;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+
+import java.util.Optional;
+
+/** Traduce los eventos de combate en los sonidos de dano, muerte y ataque. */
+public final class SoundListener implements Listener {
+
+    private final MobService service;
+    private final SoundService sounds;
+
+    public SoundListener(MobService service, SoundService sounds) {
+        this.service = service;
+        this.sounds = sounds;
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDamage(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof LivingEntity victim) {
+            this.service.find(victim.getUniqueId()).ifPresent(this.sounds::playHurt);
+        }
+        LivingEntity attacker = this.attackerOf(event);
+        if (attacker != null) {
+            this.service.find(attacker.getUniqueId()).ifPresent(this.sounds::playAttack);
+        }
+    }
+
+    @EventHandler
+    public void onDeath(EntityDeathEvent event) {
+        this.service.find(event.getEntity().getUniqueId()).ifPresent(this.sounds::playDeath);
+    }
+
+    private LivingEntity attackerOf(EntityDamageByEntityEvent event) {
+        Entity source = event.getDamager();
+        if (source instanceof Projectile projectile) {
+            source = projectile.getShooter() instanceof Entity shooter ? shooter : null;
+        }
+        return source instanceof LivingEntity living ? living : null;
+    }
+}

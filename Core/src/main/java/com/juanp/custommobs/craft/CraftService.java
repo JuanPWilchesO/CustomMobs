@@ -1,0 +1,133 @@
+package com.juanp.custommobs.craft;
+
+import com.juanp.custommobs.CustomMobsPlugin;
+import com.juanp.custommobs.item.RecipeSpec;
+import com.juanp.custommobs.mob.MobDefinition;
+import com.juanp.custommobs.mob.MobKeys;
+import com.juanp.custommobs.mob.MobRegistry;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.persistence.PersistentDataType;
+
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * Registra las recetas de los huevos custom y los construye.
+ *
+ * <p>La receta por defecto es sin forma: huevo base + catalizador. Si dos definiciones
+ * comparten el mismo par de ingredientes, la segunda se omite con un aviso, porque el
+ * cliente no podria distinguirlas.
+ */
+public final class CraftService {
+
+    private final CustomMobsPlugin plugin;
+    private final MobRegistry registry;
+    private final MobKeys keys;
+    private final Set<String> recipeKeys = new HashSet<>();
+    private final Set<String> ingredientPairs = new HashSet<>();
+
+    public CraftService(CustomMobsPlugin plugin, MobRegistry registry, MobKeys keys) {
+        this.plugin = plugin;
+        this.registry = registry;
+        this.keys = keys;
+    }
+
+    public void registerAll() {
+        this.unregisterAll();
+        for (MobDefinition definition : this.registry.all()) {
+            this.register(definition);
+        }
+    }
+
+    public void unregisterAll() {
+        for (String key : this.recipeKeys) {
+            NamespacedKey namespacedKey = NamespacedKey.fromString(key);
+            if (namespacedKey != null) {
+                Bukkit.removeRecipe(namespacedKey);
+            }
+        }
+        this.recipeKeys.clear();
+        this.ingredientPairs.clear();
+    }
+
+    private void register(MobDefinition definition) {
+        if (definition.eggMaterial() == null) {
+            return;
+        }
+        RecipeSpec spec = definition.recipe();
+        if (!spec.enabled()) {
+            this.plugin.getLogger().info("Crafteo desactivado para '" + definition.id() + "' (recipe.amount <= 0).");
+            return;
+        }
+        if (spec.extras().size() > 8) {
+            this.plugin.getLogger().warning("La receta de '" + definition.id() + "' tiene demasiados ingredientes (maximo 8 ademas del huevo).");
+            return;
+        }
+
+        String signature = spec.signature(definition.eggMaterial());
+        if (!this.ingredientPairs.add(signature)) {
+            this.plugin.getLogger().warning("La receta de '" + definition.id() + "' choca con otra ("
+                    + signature + "). Cambia 'recipe.extras' en el yml para diferenciarlas.");
+            return;
+        }
+
+        NamespacedKey key = new NamespacedKey(this.plugin, "egg_" + definition.id());
+        ItemStack result = this.createEgg(definition);
+        result.setAmount(Math.max(1, Math.min(9, spec.amount())));
+
+        ShapelessRecipe recipe = new ShapelessRecipe(key, result);
+        recipe.addIngredient(new RecipeChoice.MaterialChoice(definition.eggMaterial()));
+        for (Material extra : spec.extras()) {
+            recipe.addIngredient(new RecipeChoice.MaterialChoice(extra));
+        }
+
+        try {
+            Bukkit.addRecipe(recipe);
+            this.recipeKeys.add(key.toString());
+        } catch (Throwable throwable) {
+            this.plugin.getLogger().warning("No se pudo registrar la receta de '"
+                    + definition.id() + "': " + throwable.getMessage());
+        }
+    }
+
+    /** Construye el huevo custom: el huevo base marcado con el id de la definicion. */
+    public ItemStack createEgg(MobDefinition definition) {
+        if (definition.eggMaterial() == null) {
+            return null;
+        }
+        ItemStack item = new ItemStack(definition.eggMaterial());
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(definition.displayName());
+            if (!definition.lore().isEmpty()) {
+                meta.setLore(definition.lore());
+            }
+            meta.getPersistentDataContainer().set(this.keys.definition(), PersistentDataType.STRING, definition.id());
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    /** Definicion a la que pertenece un item, si es un huevo custom. */
+    public Optional<MobDefinition> definitionOf(ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return Optional.empty();
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return Optional.empty();
+        }
+        String id = meta.getPersistentDataContainer().get(this.keys.definition(), PersistentDataType.STRING);
+        if (id == null) {
+            return Optional.empty();
+        }
+        return this.registry.get(id);
+    }
+}

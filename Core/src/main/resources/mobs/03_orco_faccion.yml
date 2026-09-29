@@ -1,0 +1,50 @@
+# =============================================================================
+# 03 - Orco de faccion
+# -----------------------------------------------------------------------------
+# Lo que se aprende aqui: categoria 'server' (sin dueno), faccion, actitud
+# frente a jugadores y 'respawn-seconds', que convierte el punto en SPAWNER.
+#
+# Este mob NO se craftea. Se invoca con:
+#          /custommobs spawn tutorial_orco
+# =============================================================================
+
+id: tutorial_orco
+category: server
+display-name: '&2Orco de faccion'
+type: ZOMBIE
+
+# Faccion a la que pertenece. Ataca a las que factions.yml declare enemigas.
+faction: orcos
+
+# Actitud frente a JUGADORES (solo mobs de servidor):
+#   hostile  -> ataca a la vista
+#   neutral  -> solo si lo agreden
+#   defender -> nunca ataca jugadores; persigue a los monstruos que los amenazan
+#
+# OJO: en un mob de servidor, la relacion con jugadores la manda 'attitude'.
+# El campo 'targets.players' es para los mobs de JUGADOR (ver el ejemplo 04).
+attitude: hostile
+
+# Un mob de rol no deberia arder al amanecer. Por defecto, los de servidor
+# no se queman; los de jugador conservan el comportamiento vanilla.
+burn-in-daylight: false
+
+attributes:
+  health: 30.0
+  damage: 6.0
+  speed: 0.25
+
+# Los mobs de servidor quedan SIEMPRE anclados a su bloque de aparicion.
+# aqui 'max-distance' es el radio que pueden alejarse; 0 = sin limite.
+leash:
+  max-distance: 10.0
+  teleport-distance: 24.0
+  return-speed: 1.0
+
+# Segundos hasta reaparecer en ese bloque tras morir. 0 = una sola vida.
+# Con un valor mayor que 0, el punto funciona como spawner de este mob.
+respawn-seconds: 30
+
+lore:
+  - '&7Mob de servidor (PvE).'
+  - '&7Pelea contra las facciones enemigas.'

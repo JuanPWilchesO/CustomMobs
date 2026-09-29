@@ -1,0 +1,63 @@
+# =============================================================================
+# 02 - Soldado equipado
+# -----------------------------------------------------------------------------
+# Lo que se aprende aqui: equipamiento por slot, encantamientos vanilla y
+# CUSTOM, y 'drop-chance' para que no suelte el equipo al morir.
+#
+# Probar:   /custommobs give tutorial_soldado
+# Los ids de encantamientos custom se listan con:
+#          /custommobs enchants excellentenchants
+# =============================================================================
+
+id: tutorial_soldado
+category: player
+display-name: '&9Soldado'
+type: ZOMBIE
+egg: ZOMBIE_SPAWN_EGG
+
+recipe:
+  extras:
+    - GOLD_INGOT
+  amount: 1
+
+attributes:
+  health: 60.0
+  damage: 7.0
+  armor: 8.0
+
+# Slots: helmet, chestplate, leggings, boots, main-hand, off-hand.
+# 'drop-chance: 0.0' = nunca lo suelta. '1.0' = siempre.
+equipment:
+  helmet:
+    material: NETHERITE_HELMET
+    unbreakable: true
+    drop-chance: 0.0
+    enchants:
+      protection: 4
+  chestplate:
+    material: NETHERITE_CHESTPLATE
+    unbreakable: true
+    drop-chance: 0.0
+    enchants:
+      # Sin namespace -> vanilla primero, y si no, ExcellentEnchants.
+      protection: 4
+      excellentenchants:regrowth: 2
+  boots:
+    material: NETHERITE_BOOTS
+    unbreakable: true
+    drop-chance: 0.0
+    enchants:
+      protection: 4
+      excellentenchants:flame_walker: 2
+  main-hand:
+    material: IRON_SWORD
+    name: '&9Espada del soldado'
+    unbreakable: true
+    drop-chance: 0.0
+    enchants:
+      sharpness: 3
+      fire_aspect: 2
+
+lore:
+  - '&7Soldado con equipo completo.'
+  - '&7No suelta el equipo al morir.'

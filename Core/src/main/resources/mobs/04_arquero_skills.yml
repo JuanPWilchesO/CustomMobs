@@ -1,0 +1,78 @@
+# =============================================================================
+# 04 - Arquero con skills
+# -----------------------------------------------------------------------------
+# Lo que se aprende aqui: los CUATRO efectos (damage, heal, message, potion)
+# y los CINCO objetivos (self, owner, target, enemies, allies).
+#
+# Probar:   /custommobs give tutorial_arquero
+#
+# Cada skill se evalua cada 'skills.interval-ticks' del config (20 = 1 segundo).
+# 'chance' es la probabilidad por evaluacion: si falla la tirada se reintenta en
+# el siguiente ciclo SIN gastar el cooldown.
+# =============================================================================
+
+id: tutorial_arquero
+category: player
+display-name: '&eArquero'
+type: SKELETON
+egg: SKELETON_SPAWN_EGG
+
+recipe:
+  extras:
+    - REDSTONE
+  amount: 1
+
+attributes:
+  health: 30.0
+  damage: 3.0
+
+# Relacion con jugadores (mobs de JUGADOR la necesitan aqui, no en 'attitude'):
+#   never | enemies | non-allies | defensive
+# 'defensive' = neutral hasta que agredan a su bando. Es lo recomendado.
+targets:
+  players: defensive
+
+skills:
+  # 1) DANO a quien esta atacando. El mensaje es opcional, pero util: avisa al
+  #    jugador de que la skill disparo, y no que fue un golpe normal.
+  - id: flecha_certera
+    effect: damage
+    target: target
+    range: 12.0
+    amount: 6.0
+    cooldown-seconds: 6
+    chance: 0.7
+    message: '&cEl arquero te acierta con una flecha.'
+
+  # 2) CURACION a su dueno. 'target: owner' solo funciona en mobs de jugador.
+  - id: vendaje
+    effect: heal
+    target: owner
+    range: 12.0
+    amount: 5.0
+    cooldown-seconds: 25
+    message: '&aEl arquero te venda las heridas.'
+
+  # 3) POCION a los enemigos. 'enemies' usa la misma politica de combate que la
+  #    IA: incluye a quien agredio a su bando, no solo a los enemigos declarados.
+  - id: flecha_venenosa
+    effect: potion
+    target: enemies
+    range: 12.0
+    cooldown-seconds: 15
+    potion: poison
+    potion-duration-seconds: 5
+    potion-amplifier: 0
+
+  # 4) HABLA. En 'message' el target se IGNORA: el mob habla a los jugadores
+  #    dentro de 'range'. '{mob}' se sustituye por su nombre visible.
+  - id: provocacion
+    effect: message
+    target: self
+    range: 24.0
+    cooldown-seconds: 45
+    message: '{mob} &fNi te acerques.'
+
+lore:
+  - '&7Arquero con las cuatro skills.'
+  - '&7Dano, curacion, pocion y habla.'

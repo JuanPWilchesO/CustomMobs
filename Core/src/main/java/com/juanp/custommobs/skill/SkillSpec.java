@@ -1,0 +1,39 @@
+package com.juanp.custommobs.skill;
+
+/**
+ * Una skill configurable de un mob, leida de la seccion {@code skills} de su yml.
+ *
+ * <p>Se evalua cada {@code skills.interval-ticks} del config central. Una skill con
+ * {@code chance} menor que 1 no siempre se dispara: si falla la tirada, se reintenta en
+ * la siguiente evaluacion sin consumir el cooldown.
+ *
+ * @param id                    identificador unico dentro del mob (cooldowns y logs)
+ * @param effect                que hace
+ * @param target                a quien apunta (en {@code MESSAGE} se ignora: habla al radio)
+ * @param range                 radio de busqueda y alcance maximo, en bloques
+ * @param cooldownSeconds       segundos minimos entre usos
+ * @param chance                probabilidad por evaluacion (0.0 a 1.0; 1.0 = siempre)
+ * @param amount                dano o curacion (DAMAGE y HEAL)
+ * @param message               texto de MESSAGE, o aviso opcional en las demas
+ * @param potion                efecto de pocion (POTION), tal como {@code POISON}
+ * @param potionDurationSeconds duracion del efecto (POTION)
+ * @param potionAmplifier       nivel del efecto, 0 = nivel I (POTION)
+ */
+public record SkillSpec(
+        String id,
+        SkillEffect effect,
+        SkillTarget target,
+        double range,
+        int cooldownSeconds,
+        double chance,
+        double amount,
+        String message,
+        String potion,
+        int potionDurationSeconds,
+        int potionAmplifier
+) {
+
+    public boolean hasMessage() {
+        return this.message != null && !this.message.isBlank();
+    }
+}

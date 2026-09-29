@@ -1,0 +1,24 @@
+# CustomMobs - relaciones entre facciones de los mobs de categoria 'server'.
+#
+# Las relaciones son simetricas: si 'orcos' declara a 'humanos' como enemigo,
+# la enemistad vale tambien al reves. Lo que no se declare aqui es NEUTRAL:
+# dos facciones neutrales solo se atacan si una agrede a la otra.
+#
+# Fuera de las facciones, la actitud frente a JUGADORES se define en cada mob
+# (campo 'attitude': hostile | neutral | defender).
+
+orcos:
+  allies: [goblins]
+  enemies: [humanos, enanos]
+
+goblins:
+  allies: [orcos]
+  enemies: [humanos, enanos]
+
+humanos:
+  allies: [enanos]
+  enemies: [orcos, goblins]
+
+enanos:
+  allies: [humanos]
+  enemies: [orcos, goblins]

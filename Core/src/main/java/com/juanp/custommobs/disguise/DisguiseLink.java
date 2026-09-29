@@ -1,0 +1,23 @@
+package com.juanp.custommobs.disguise;
+
+import com.juanp.custommobs.mob.MobDefinition;
+import org.bukkit.entity.LivingEntity;
+
+/** Aplica la apariencia de un mob. Se elige un adaptador segun los plugins presentes. */
+public interface DisguiseLink {
+
+    /** Nombre del enlace activo, para el log de arranque. */
+    String name();
+
+    /**
+     * Encola el disfraz para la proxima entidad que se cree. Debe llamarse justo
+     * antes de invocarla: aplicar el disfraz despues deja ver un parpadeo del mob base.
+     */
+    void applyNext(MobDefinition definition);
+
+    /** Aplica el disfraz a una entidad ya existente (restaurada tras un reinicio). */
+    void apply(LivingEntity entity, MobDefinition definition);
+
+    /** {@code true} si la entidad ya lleva un disfraz aplicado. */
+    boolean isDisguised(LivingEntity entity);
+}
