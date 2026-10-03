@@ -588,7 +588,8 @@ aparte. Los spawners son la excepcion: su punto debe sobrevivir a la muerte del 
 
 **Un mob no aparece al usar el huevo.**
 Revisa en este orden: (1) que tengas `custommobs.player`; (2) que no hayas llegado a tu
-cupo — `/custommobs cuota`; (3) que `consume-egg` y la receta sean lo que crees.
+cupo — `/custommobs cuota`; (3) que el mob tenga `egg` y que su crafteo no este apagado
+(`recipe.amount: 0`).
 
 **"Jugador no encontrado" al usar `give`.**
 `getPlayerExact` solo encuentra jugadores **conectados**.
