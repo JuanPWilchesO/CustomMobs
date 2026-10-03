@@ -38,13 +38,26 @@ public final class SkillInteractListener implements Listener {
         Entity clicked = event.getRightClicked();
         CustomMob customMob = this.service.find(clicked.getUniqueId()).orElse(null);
         if (customMob == null) {
+            this.debug("Clic sobre " + clicked.getType() + ": no es un mob nuestro; se ignora.");
             return;
         }
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
         if (this.craft.definitionOf(item).isPresent()) {
+            this.debug("Clic sobre " + customMob.definition().id() + " con un huevo en la mano: ese clic es del huevo.");
             return;
         }
+        long interactivas = customMob.definition().skills().stream()
+                .filter(skill -> skill.trigger() == SkillTrigger.INTERACT).count();
+        this.debug("Clic sobre " + customMob.definition().id() + " de " + player.getName()
+                + ": skills de interaccion = " + interactivas + ".");
         this.skills.interact(customMob, player);
+    }
+
+    /** Traza de depuracion: solo escribe si 'debug' esta activo en el config. */
+    private void debug(String message) {
+        if (this.service.config().debug()) {
+            this.service.plugin().getLogger().info("[skill] " + message);
+        }
     }
 }

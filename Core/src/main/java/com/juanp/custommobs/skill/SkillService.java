@@ -221,7 +221,12 @@ public final class SkillService extends BukkitRunnable {
         perMob.put(skill.id(), now + skill.cooldownSeconds() * 1000L);
         if (skill.effect() == SkillEffect.MESSAGE) {
             // El dialogo va solo a quien hizo clic, no a todo el que este cerca.
-            clicker.sendMessage(this.spoken(customMob, skill, clicker));
+            String text = this.spoken(customMob, skill, clicker);
+            if (this.service.config().debug()) {
+                this.service.plugin().getLogger().info("[skill] Interaccion de "
+                        + customMob.definition().id() + " a " + clicker.getName() + ": " + text);
+            }
+            clicker.sendMessage(text);
             return;
         }
         // Los demas efectos se resuelven igual que una skill normal: el clic es el gatillo.
