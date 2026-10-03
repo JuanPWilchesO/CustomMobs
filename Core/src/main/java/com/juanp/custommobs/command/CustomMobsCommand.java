@@ -6,6 +6,7 @@ import com.juanp.custommobs.style.MobStyle;
 import com.juanp.custommobs.team.TeamLink;
 import com.juanp.custommobs.mob.MobDefinition;
 import com.juanp.custommobs.spawner.SpawnerEntry;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Registry;
 import org.bukkit.World;
@@ -390,6 +391,18 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         return removed;
     }
 
+    /** Nombres de color validos para 'color' y 'glow', mas el apagado. */
+    private static List<String> colorNames() {
+        List<String> names = new ArrayList<>();
+        for (ChatColor color : ChatColor.values()) {
+            if (color.isColor()) {
+                names.add(color.name().toLowerCase(Locale.ROOT));
+            }
+        }
+        names.add(MobStyle.OFF);
+        return names;
+    }
+
     /** Id desde texto; {@code null} si no es un UUID valido. */
     private static UUID parseUuid(String raw) {
         try {
@@ -607,13 +620,33 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String alias, @NotNull String[] args) {
         List<String> out = new ArrayList<>();
+        // El autocompletado tambien revela: a un jugador raso se le ofrecen UNICAMENTE los
+        // subcomandos que puede usar de verdad. Lo demas es informacion de administracion.
+        boolean admin = sender.hasPermission(this.plugin.config().adminPermission());
+
         if (args.length == 1) {
-            for (String option : List.of("reload", "list", "give", "spawn", "remove", "active", "kill",
-                    "enchants", "cuota", "item", "color", "glow", "spawner")) {
+            List<String> options = admin
+                    ? List.of("reload", "list", "give", "spawn", "remove", "active", "kill",
+                            "enchants", "cuota", "item", "color", "glow", "spawner")
+                    : List.of("cuota", "color", "glow");
+            for (String option : options) {
                 if (option.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(option);
                 }
             }
+            return out;
+        }
+        // 'color' y 'glow' son suyos: completar sus valores no revela nada de gestion.
+        if (args.length == 2 && (args[0].equalsIgnoreCase("color") || args[0].equalsIgnoreCase("glow"))) {
+            for (String name : colorNames()) {
+                if (name.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    out.add(name);
+                }
+            }
+            return out;
+        }
+        // De aqui para abajo, todo es administracion: sin permiso, no se completa nada.
+        if (!admin) {
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("spawner")) {
