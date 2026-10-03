@@ -7,6 +7,8 @@ import com.juanp.custommobs.mob.PlayerMobRegistry;
 import com.juanp.custommobs.mob.Texts;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -57,8 +59,16 @@ public final class EggListener implements Listener {
             return;
         }
 
-        event.setCancelled(true);
         Player player = event.getPlayer();
+        // El mismo clic sobre un mob puede llegar TAMBIEN como RIGHT_CLICK_AIR. Si el
+        // jugador esta apuntando a un mob nuestro, el clic es para ESE mob y lo maneja
+        // onInteractEntity: sin esto, el huevo desplegaria un segundo mob a sus pies y
+        // pareceria que nunca recoge.
+        if (this.aimingAtCustomMob(player)) {
+            return;
+        }
+
+        event.setCancelled(true);
         // Los mundos excluidos valen para TODO: tampoco se invoca desde el huevo. El
         // chequeo de 'spawn' llegaba tarde y con un mensaje enganoso; aqui se dice claro.
         if (!this.service.worldEnabled(player.getWorld())) {
@@ -104,32 +114,57 @@ public final class EggListener implements Listener {
         }
     }
 
-    /** Golpear el mob con su propio huevo: se recoge y vuelve dentro del huevo. */
+    /**
+     * Golpear el mob con su huevo: se recoge y vuelve dentro del huevo.
+     *
+     * <p>El vinculo se resuelve por la ENTIDAD golpeada, no por lo que declare el huevo.
+     * Un huevo puede perder o cambiar su marca —al recargar, al copiarlo, al moverlo entre
+     * inventarios— y entonces el mob no se recogia nunca: parecia que el huevo estaba
+     * atascado, trayendo el mob y sin guardarlo.
+     */
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
-        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
-        if (this.craft.definitionOf(item).isEmpty()) {
+        Entity clicked = event.getRightClicked();
+        if (!(clicked instanceof LivingEntity)) {
             return;
         }
-        Optional<UUID> bound = this.craft.linkOf(item);
-        if (bound.isEmpty()) {
+        Player player = event.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        Optional<MobDefinition> held = this.craft.definitionOf(item);
+        if (held.isEmpty()) {
             return;
         }
-        PlayerMobRegistry.MobLink link = this.service.playerMobs().byLink(bound.get()).orElse(null);
+        PlayerMobRegistry.MobLink link = this.service.playerMobs()
+                .byEntity(clicked.getUniqueId()).orElse(null);
         if (link == null || !link.deployed()) {
             return;
         }
-        if (!link.entityId().equals(event.getRightClicked().getUniqueId())) {
+        if (!player.getUniqueId().equals(link.owner())) {
+            return;
+        }
+        // Hace falta el huevo de ESE mob: no vale cualquier huevo custom.
+        if (!held.get().id().equals(link.definitionId())) {
             return;
         }
         event.setCancelled(true);
+        // El huevo pasa a representar a este mob, aunque su marca se hubiera perdido.
+        this.craft.bind(item, link.linkId());
         if (this.service.store(link.linkId())) {
-            event.getPlayer().sendMessage(Texts.color("&aMob recogido. Vuelve a colocar el huevo cuando quieras."));
+            player.sendMessage(Texts.color("&aMob recogido. Vuelve a colocar el huevo cuando quieras."));
         }
     }
+
+    /** {@code true} si el jugador esta apuntando a un mob gestionado por el plugin. */
+    private boolean aimingAtCustomMob(Player player) {
+        Entity aimed = player.getTargetEntity(ENTITY_REACH);
+        return aimed != null && this.service.find(aimed.getUniqueId()).isPresent();
+    }
+
+    /** Alcance con el que se mira a un mob: cubre el de creativo con margen. */
+    private static final int ENTITY_REACH = 6;
 
     private Location spawnLocation(PlayerInteractEvent event, Player player) {
         Block clicked = event.getClickedBlock();

@@ -7,6 +7,7 @@ import com.juanp.custommobs.drop.DropSpec;
 import com.juanp.custommobs.skill.SkillEffect;
 import com.juanp.custommobs.skill.SkillSpec;
 import com.juanp.custommobs.skill.SkillTarget;
+import com.juanp.custommobs.skill.SkillTrigger;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
@@ -282,10 +283,14 @@ public final class MobLoader {
             return null;
         }
         String message = asString(entry.get("message"));
+        // Si el yml no dice nada, la skill es pasiva: el comportamiento de siempre.
+        SkillTrigger parsed = SkillTrigger.parse(asString(entry.get("mode")));
+        SkillTrigger trigger = parsed == null ? SkillTrigger.DEFAULT : parsed;
         return new SkillSpec(
                 id,
                 effect,
                 target,
+                trigger,
                 Math.min(MAX_SKILL_RANGE, Math.max(1.0D, asNumber(entry.get("range"), 8.0D))),
                 (int) Math.max(0L, Math.round(asNumber(entry.get("cooldown-seconds"), 5.0D))),
                 Math.min(1.0D, Math.max(0.0D, asNumber(entry.get("chance"), 1.0D))),

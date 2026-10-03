@@ -56,7 +56,16 @@ public final class SkillService extends BukkitRunnable {
             if (entity.isDead() || !entity.isValid()) {
                 continue;
             }
+            // Las de interaccion solo las dispara un clic derecho; las activas, solo en
+            // combate; las pasivas, siempre que el mob este cargado.
+            boolean inCombat = this.inCombat(entity);
             for (SkillSpec skill : skills) {
+                if (skill.trigger() == SkillTrigger.INTERACT) {
+                    continue;
+                }
+                if (skill.trigger() == SkillTrigger.ACTIVE && !inCombat) {
+                    continue;
+                }
                 this.tryUse(customMob, skill, now);
             }
         }
@@ -169,6 +178,58 @@ public final class SkillService extends BukkitRunnable {
         return Registry.EFFECT.get(NamespacedKey.minecraft(raw.toLowerCase(Locale.ROOT).trim()));
     }
 
+    // ------------------------------------------------------------------ interaccion
+
+    /** {@code true} si el mob esta en combate: tiene a alguien a quien atacar. */
+    private boolean inCombat(LivingEntity entity) {
+        return entity instanceof Mob mob && mob.getTarget() != null;
+    }
+
+    /**
+     * Dispara las skills de interaccion de un mob: las que un jugador activa con clic
+     * derecho. En {@code MESSAGE} el texto va solo a quien hizo clic, y admite
+     * {@code {jugador}} ademas de {@code {mob}}.
+     */
+    public void interact(CustomMob customMob, Player clicker) {
+        List<SkillSpec> skills = customMob.definition().skills();
+        if (skills.isEmpty()) {
+            return;
+        }
+        LivingEntity entity = customMob.entity();
+        if (entity.isDead() || !entity.isValid()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (SkillSpec skill : skills) {
+            if (skill.trigger() == SkillTrigger.INTERACT) {
+                this.useInteraction(customMob, skill, clicker, now);
+            }
+        }
+    }
+
+    private void useInteraction(CustomMob customMob, SkillSpec skill, Player clicker, long now) {
+        LivingEntity entity = customMob.entity();
+        Map<String, Long> perMob = this.cooldowns.computeIfAbsent(entity.getUniqueId(),
+                id -> new ConcurrentHashMap<>());
+        Long until = perMob.get(skill.id());
+        if (until != null && now < until) {
+            return;
+        }
+        if (skill.chance() < 1.0D && this.random.nextDouble() > skill.chance()) {
+            return;
+        }
+        perMob.put(skill.id(), now + skill.cooldownSeconds() * 1000L);
+        if (skill.effect() == SkillEffect.MESSAGE) {
+            // El dialogo va solo a quien hizo clic, no a todo el que este cerca.
+            clicker.sendMessage(this.spoken(customMob, skill, clicker));
+            return;
+        }
+        // Los demas efectos se resuelven igual que una skill normal: el clic es el gatillo.
+        for (LivingEntity target : this.resolve(customMob, skill)) {
+            this.apply(customMob, skill, target);
+        }
+    }
+
     // ------------------------------------------------------------------ auxiliares
 
     private Optional<LivingEntity> ownerOf(CustomMob customMob) {
@@ -229,7 +290,16 @@ public final class SkillService extends BukkitRunnable {
 
     /** Texto que dice el mob: {@code {mob}} se sustituye por su nombre visible. */
     private String spoken(CustomMob customMob, SkillSpec skill) {
+        return this.spoken(customMob, skill, null);
+    }
+
+    /** Igual, pero con {@code {jugador}} disponible cuando hay un interlocutor. */
+    private String spoken(CustomMob customMob, SkillSpec skill, Player listener) {
         String message = skill.hasMessage() ? skill.message() : "";
-        return message.replace("{mob}", customMob.definition().displayName());
+        String text = message.replace("{mob}", customMob.definition().displayName());
+        if (listener != null) {
+            text = text.replace("{jugador}", listener.getName());
+        }
+        return text;
     }
 }

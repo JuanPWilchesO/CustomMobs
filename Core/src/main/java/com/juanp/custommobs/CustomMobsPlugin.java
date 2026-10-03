@@ -27,6 +27,7 @@ import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
 import com.juanp.custommobs.recall.RecallService;
+import com.juanp.custommobs.skill.SkillInteractListener;
 import com.juanp.custommobs.skill.SkillService;
 import com.juanp.custommobs.spawner.SpawnerListener;
 import com.juanp.custommobs.spawner.SpawnerRegistry;
@@ -125,6 +126,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.craftService = new CraftService(this, this.registry, this.mobService.keys());
         this.craftService.registerAll();
 
+        // Se crea aqui, y no mas abajo, porque el listener del clic derecho lo necesita.
+        this.skillService = new SkillService(this.mobService);
+
         this.api = new CustomMobsApiImpl(this.mobService, this.registry);
         this.getServer().getServicesManager().register(CustomMobsApi.class, this.api, this, ServicePriority.Normal);
 
@@ -138,6 +142,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
         pluginManager.registerEvents(new SpawnerListener(this.mobService), this);
         pluginManager.registerEvents(new DropListener(this.mobService, this.dropService), this);
         pluginManager.registerEvents(new MotdListener(this), this);
+        pluginManager.registerEvents(new SkillInteractListener(this.craftService, this.mobService, this.skillService), this);
 
         PluginCommand command = this.getCommand("custommobs");
         if (command != null) {
@@ -158,7 +163,6 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.ambientTask = new AmbientTask(this.soundService);
         this.ambientTask.runTaskTimer(this, 20L, 20L);
 
-        this.skillService = new SkillService(this.mobService);
         long skillInterval = this.config.skillIntervalTicks();
         this.skillService.runTaskTimer(this, skillInterval, skillInterval);
 

@@ -449,6 +449,15 @@ public final class MobService implements Listener {
         if (this.active.containsKey(entityId)) {
             return;
         }
+        // Un vinculo representa UN mob: si otra entidad viva lo reclama, esta es una copia
+        // huerfana —un recogido que no llego a borrar la entidad— y se retira.
+        UUID claimed = parseUuid(entity.getPersistentDataContainer()
+                .get(this.keys.link(), PersistentDataType.STRING));
+        if (claimed != null && this.isDuplicateLink(claimed, entityId)) {
+            this.plugin.getLogger().warning("Se retira un mob duplicado del vinculo " + claimed + ".");
+            entity.remove();
+            return;
+        }
         this.read(entity).ifPresent(customMob -> {
             this.active.put(entityId, customMob);
             // Reengancha el vinculo: la entidad trae su id en el PDC, asi que aunque el
@@ -539,6 +548,16 @@ public final class MobService implements Listener {
     }
 
     /** Quita del registro los mobs muertos o descargados. */
+    /** {@code true} si ese vinculo ya lo reclama otra entidad viva. */
+    private boolean isDuplicateLink(UUID linkId, UUID entityId) {
+        PlayerMobRegistry.MobLink link = this.playerMobs.byLink(linkId).orElse(null);
+        if (link == null || !link.deployed() || entityId.equals(link.entityId())) {
+            return false;
+        }
+        Entity current = Bukkit.getEntity(link.entityId());
+        return current != null && current.isValid();
+    }
+
     public void prune() {
         this.active.values().removeIf(customMob -> {
             LivingEntity entity = customMob.entity();
@@ -676,6 +695,17 @@ public final class MobService implements Listener {
             }
             this.active.remove(link.entityId());
             customMob.entity().remove();
+        } else {
+            // El vinculo decia "desplegado" pero la entidad no estaba en la lista de
+            // activos. Antes se dejaba viva y quedaba un mob huerfano que su huevo ya no
+            // podia recoger; ahora se quita igual.
+            Entity orphan = Bukkit.getEntity(link.entityId());
+            if (orphan != null) {
+                if (this.styles != null && orphan instanceof LivingEntity living) {
+                    this.styles.clear(living);
+                }
+                orphan.remove();
+            }
         }
         this.playerMobs.store(linkId);
         this.playerMobs.save();

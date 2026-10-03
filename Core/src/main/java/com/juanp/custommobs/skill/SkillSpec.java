@@ -10,6 +10,8 @@ package com.juanp.custommobs.skill;
  * @param id                    identificador unico dentro del mob (cooldowns y logs)
  * @param effect                que hace
  * @param target                a quien apunta (en {@code MESSAGE} se ignora: habla al radio)
+ * @param trigger               cuando se dispara: pasiva, activa (solo en combate) o al
+ *                              hacer clic derecho sobre el mob
  * @param range                 radio de busqueda y alcance maximo, en bloques
  * @param cooldownSeconds       segundos minimos entre usos
  * @param chance                probabilidad por evaluacion (0.0 a 1.0; 1.0 = siempre)
@@ -23,6 +25,7 @@ public record SkillSpec(
         String id,
         SkillEffect effect,
         SkillTarget target,
+        SkillTrigger trigger,
         double range,
         int cooldownSeconds,
         double chance,
