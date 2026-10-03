@@ -19,7 +19,9 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * El huevo custom como ficha de un mob.
@@ -36,6 +38,13 @@ public final class EggListener implements Listener {
     private final CustomMobsPlugin plugin;
     private final CraftService craft;
     private final MobService service;
+
+    /**
+     * Jugadores que acaban de recoger un mob. El mismo clic derecho llega tambien como
+     * RIGHT_CLICK_AIR; sin esta marca, el huevo recogia el mob y lo volvia a soltar en el
+     * acto, y parecia que el mob solo venia hacia el jugador.
+     */
+    private final Set<UUID> justCollected = ConcurrentHashMap.newKeySet();
 
     public EggListener(CustomMobsPlugin plugin, CraftService craft, MobService service) {
         this.plugin = plugin;
@@ -64,7 +73,11 @@ public final class EggListener implements Listener {
         // jugador esta apuntando a un mob nuestro, el clic es para ESE mob y lo maneja
         // onInteractEntity: sin esto, el huevo desplegaria un segundo mob a sus pies y
         // pareceria que nunca recoge.
-        if (this.aimingAtCustomMob(player)) {
+        boolean collected = this.justCollected.contains(player.getUniqueId());
+        boolean aiming = this.aimingAtCustomMob(player);
+        if (collected || aiming) {
+            this.debug("Clic ignorado (" + action + "): "
+                    + (collected ? "acaba de recoger" : "apunta a un mob custom") + ".");
             return;
         }
 
@@ -146,20 +159,40 @@ public final class EggListener implements Listener {
         PlayerMobRegistry.MobLink link = this.service.playerMobs()
                 .byEntity(clicked.getUniqueId()).orElse(null);
         if (link == null || !link.deployed()) {
+            // Aqui esta la clave: o el mob no tiene vinculo, o su vinculo ya no dice
+            // "desplegado". Sin esta traza habria que adivinar cual de las dos es.
+            this.debug("Golpe a " + clicked.getType() + " sin vinculo desplegado ("
+                    + (link == null ? "sin vinculo" : "vinculo guardado") + "); no se recoge.");
             return;
         }
         if (!player.getUniqueId().equals(link.owner())) {
+            this.debug("Golpe a " + link.definitionId() + " cuyo dueno no es quien golpea.");
             return;
         }
         // Hace falta el huevo de ESE mob: no vale cualquier huevo custom.
         if (!held.get().id().equals(link.definitionId())) {
+            this.debug("Huevo de '" + held.get().id() + " para un mob '"
+                    + link.definitionId() + "': no coincide.");
             return;
         }
         event.setCancelled(true);
         // El huevo pasa a representar a este mob, aunque su marca se hubiera perdido.
         this.craft.bind(item, link.linkId());
         if (this.service.store(link.linkId())) {
+            // Se marca este clic para que su mitad RIGHT_CLICK_AIR no lo vuelva a soltar.
+            UUID id = player.getUniqueId();
+            this.justCollected.add(id);
+            this.plugin.getServer().getScheduler().runTask(this.plugin,
+                    () -> this.justCollected.remove(id));
+            this.debug("Mob recogido: " + link.definitionId() + ".");
             player.sendMessage(Texts.color("&aMob recogido. Vuelve a colocar el huevo cuando quieras."));
+        }
+    }
+
+    /** Traza de depuracion: solo escribe si 'debug' esta activo en el config. */
+    private void debug(String message) {
+        if (this.service.config().debug()) {
+            this.plugin.getLogger().info("[huevo] " + message);
         }
     }
 
