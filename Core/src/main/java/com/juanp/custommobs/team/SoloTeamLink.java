@@ -30,4 +30,10 @@ public final class SoloTeamLink implements TeamLink {
     public boolean isEnemyTeam(UUID teamId, UUID player) {
         return false;
     }
+
+    @Override
+    public Optional<UUID> ownerOf(UUID player) {
+        // Sin Teams no hay jefe: cada jugador decide lo suyo.
+        return Optional.empty();
+    }
 }

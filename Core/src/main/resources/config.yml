@@ -1,6 +1,24 @@
 # CustomMobs - configuracion general
 debug: false
 
+# ---------------------------------------------------------------------------
+# Firma y mensaje de bienvenida.
+# ---------------------------------------------------------------------------
+branding:
+  # Firma que el plugin escribe en el log al arrancar. Vacia = no se muestra.
+  signature: 'Plugin by: AP2P Project'
+
+  # Mensaje que ve el jugador al entrar. Admite '&' para color.
+  # Marcadores disponibles: {jugador}, {online}, {max}
+  # Por defecto en rojo y negro; cambia los '&' a gusto.
+  # Para desactivarlo: motd-enabled en false, o la lista vacia.
+  motd-enabled: true
+  motd:
+    - '&0&m----------------------------------'
+    - ' &cCustomMobs &0| &cAP2P Project'
+    - ' &cBienvenido, &4{jugador}&c.'
+    - '&0&m----------------------------------'
+
 targeting:
   # Radio en bloques para buscar objetivos alrededor del soldado.
   radius: 16.0

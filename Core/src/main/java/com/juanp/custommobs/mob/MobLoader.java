@@ -3,6 +3,7 @@ package com.juanp.custommobs.mob;
 import com.juanp.custommobs.combat.PlayerTargetMode;
 import com.juanp.custommobs.item.EquipItem;
 import com.juanp.custommobs.item.RecipeSpec;
+import com.juanp.custommobs.drop.DropSpec;
 import com.juanp.custommobs.skill.SkillEffect;
 import com.juanp.custommobs.skill.SkillSpec;
 import com.juanp.custommobs.skill.SkillTarget;
@@ -102,6 +103,7 @@ public final class MobLoader {
         DisguiseSpec disguise = parseDisguise(cfg.getConfigurationSection("disguise"));
         MobSounds sounds = parseSounds(cfg.getConfigurationSection("sounds"));
         List<SkillSpec> skills = parseSkills(cfg);
+        List<DropSpec> drops = parseDrops(cfg);
         // Los mobs de rol no deberian arder al amanecer; el resto conserva el vanilla.
         boolean burnsInDaylight = cfg.getBoolean("burn-in-daylight", category == MobCategory.PLAYER);
         boolean usesAi = cfg.getBoolean("ai", true);
@@ -131,7 +133,9 @@ public final class MobLoader {
                 burnsInDaylight,
                 usesAi,
                 respawnSeconds,
-                skills
+                skills,
+                drops,
+                cfg.getBoolean("clear-vanilla-drops", false)
         ));
     }
 
@@ -231,6 +235,45 @@ public final class MobLoader {
         return List.copyOf(skills);
     }
 
+    /**
+     * Lee la lista {@code drops}. Una entrada sin {@code material} valido ni {@code item}
+     * se descarta sola: no tumba la carga del mob.
+     */
+    private static List<DropSpec> parseDrops(ConfigurationSection cfg) {
+        List<Map<?, ?>> raw = cfg.getMapList("drops");
+        if (raw.isEmpty()) {
+            return List.of();
+        }
+        List<DropSpec> drops = new ArrayList<>();
+        for (Map<?, ?> entry : raw) {
+            DropSpec spec = parseDrop(entry);
+            if (spec != null) {
+                drops.add(spec);
+            }
+        }
+        return List.copyOf(drops);
+    }
+
+    private static DropSpec parseDrop(Map<?, ?> entry) {
+        double chance = Math.min(1.0D, Math.max(0.0D, asNumber(entry.get("chance"), 1.0D)));
+        int min = (int) Math.max(1L, Math.round(asNumber(entry.get("min"),
+                asNumber(entry.get("amount"), 1.0D))));
+        int max = (int) Math.max(min, Math.round(asNumber(entry.get("max"), min)));
+        String label = asString(entry.get("etiqueta"));
+
+        // 'item' es el NOMBRE de un objeto del catalogo (items/<nombre>.yml), no el
+        // objeto en si: un item con NBT no se puede escribir a mano.
+        String name = asString(entry.get("item"));
+        if (name != null && !name.isBlank()) {
+            return new DropSpec(null, name.toLowerCase(Locale.ROOT).trim(), min, max, chance, label);
+        }
+        Material material = Material.matchMaterial(asString(entry.get("material")));
+        if (material == null || !material.isItem()) {
+            return null;
+        }
+        return new DropSpec(material, null, min, max, chance, label);
+    }
+
     private static SkillSpec parseSkill(Map<?, ?> entry) {
         String id = normalize(asString(entry.get("id")));
         SkillEffect effect = SkillEffect.parse(asString(entry.get("effect")));
@@ -319,6 +362,15 @@ public final class MobLoader {
     }
 
     private static Optional<EquipItem> parseItem(ConfigurationSection section) {
+        float dropChance = (float) section.getDouble("drop-chance", 0.0D);
+
+        // 'item' apunta al catalogo (items/<nombre>.yml): la via para equipar un objeto
+        // con NBT, que el yml no puede escribir.
+        String itemName = normalize(section.getString("item"));
+        if (itemName != null) {
+            return Optional.of(new EquipItem(null, "", List.of(), false, false, Map.of(), dropChance, itemName));
+        }
+
         Material material = Material.matchMaterial(section.getString("material", ""));
         if (material == null || !material.isItem()) {
             return Optional.empty();
@@ -344,7 +396,8 @@ public final class MobLoader {
                 section.getBoolean("unbreakable", false),
                 section.getBoolean("glint", false),
                 Map.copyOf(enchants),
-                (float) section.getDouble("drop-chance", 0.0D)
+                dropChance,
+                null
         ));
     }
 

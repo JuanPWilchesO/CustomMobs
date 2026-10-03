@@ -2,6 +2,8 @@ package com.juanp.custommobs.command;
 
 import com.juanp.custommobs.CustomMobsPlugin;
 import com.juanp.custommobs.mob.CustomMob;
+import com.juanp.custommobs.style.MobStyle;
+import com.juanp.custommobs.team.TeamLink;
 import com.juanp.custommobs.mob.MobDefinition;
 import org.bukkit.Location;
 import org.bukkit.Registry;
@@ -19,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 /** /custommobs reload | list | give | enchants */
@@ -65,6 +68,9 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             case "cuota" -> this.quota(sender, args);
             case "kill" -> this.kill(sender, args);
             case "enchants" -> this.enchants(sender, args);
+            case "item" -> this.item(sender, args);
+            case "color" -> this.setStyle(sender, args, "name");
+            case "glow" -> this.setStyle(sender, args, "glow");
             default -> this.help(sender);
         }
         return true;
@@ -315,6 +321,113 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
                 + (int) radius + " bloques.");
     }
 
+    /**
+     * Cambia el color del nombre o del brillo de los player mobs.
+     *
+     * <p>Si el jugador esta en un team, el ajuste es del TEAM y solo lo puede cambiar su
+     * jefe: asi los mobs de todos los miembros se ven iguales, y nadie pisa el estilo de
+     * los demas. Sin team, cada jugador decide sobre los suyos.
+     */
+    private void setStyle(CommandSender sender, String[] args, String field) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("[CustomMobs] Este ajuste solo funciona desde el juego.");
+            return;
+        }
+        boolean isName = "name".equals(field);
+        if (args.length < 2) {
+            sender.sendMessage("[CustomMobs] Uso: /custommobs " + (isName ? "color" : "glow")
+                    + " <color|" + MobStyle.OFF + ">");
+            sender.sendMessage("[CustomMobs] Colores: RED, BLUE, GREEN, GOLD, AQUA, LIGHT_PURPLE...");
+            return;
+        }
+
+        String raw = args[1].toLowerCase(Locale.ROOT);
+        boolean off = MobStyle.OFF.equals(raw) || "none".equals(raw);
+        if (!off && MobStyle.color(raw) == null) {
+            sender.sendMessage("[CustomMobs] Color invalido: '" + args[1] + "'. Prueba RED, GOLD... o '"
+                    + MobStyle.OFF + "'.");
+            return;
+        }
+
+        TeamLink teams = this.plugin.mobs().teamLink();
+        Optional<UUID> teamId = teams.teamOf(player.getUniqueId());
+        boolean viaTeam = false;
+        if (teamId.isPresent()) {
+            UUID leader = teams.ownerOf(player.getUniqueId()).orElse(null);
+            if (leader == null || !leader.equals(player.getUniqueId())) {
+                sender.sendMessage("[CustomMobs] Tu team decide este ajuste: solo su jefe puede cambiarlo.");
+                return;
+            }
+            viaTeam = true;
+        }
+
+        String value = off ? MobStyle.OFF : raw;
+        if (viaTeam) {
+            this.plugin.styles().registry().setTeam(teamId.get(), field, value);
+        } else {
+            this.plugin.styles().registry().setPlayer(player.getUniqueId(), field, value);
+        }
+        this.plugin.styles().registry().save();
+        int touched = this.plugin.styles().refresh();
+
+        sender.sendMessage("[CustomMobs] " + (isName ? "Color del nombre" : "Brillo") + " en '" + value + "'"
+                + (viaTeam ? " para todo el team" : "") + ". Mobs actualizados: " + touched + ".");
+    }
+
+    /**
+     * Catalogo de objetos con nombre.
+     *
+     * <p>Es la via para guardar objetos con NBT: un encantamiento de otro plugin vive en el
+     * NBT del item y no se puede escribir a mano en un yml. Se guarda una vez, con un nombre,
+     * y despues cualquier mob lo llama desde su tabla de drops con {@code item: <nombre>}.
+     */
+    private void item(CommandSender sender, String[] args) {
+        String usage = "[CustomMobs] Uso: /custommobs item save <nombre> | list | remove <nombre>";
+        if (args.length < 2) {
+            sender.sendMessage(usage);
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "save" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("[CustomMobs] 'item save' necesita tu mano: solo desde el juego.");
+                    return;
+                }
+                if (args.length < 3) {
+                    sender.sendMessage("[CustomMobs] Uso: /custommobs item save <nombre>");
+                    return;
+                }
+                ItemStack hand = player.getInventory().getItemInMainHand();
+                if (hand.getType().isAir()) {
+                    sender.sendMessage("[CustomMobs] Pon el objeto a guardar en la mano principal.");
+                    return;
+                }
+                if (!this.plugin.drops().catalog().save(args[2], hand.clone())) {
+                    sender.sendMessage("[CustomMobs] Nombre invalido: solo letras, numeros, guion y guion bajo (max 48).");
+                    return;
+                }
+                String name = args[2].toLowerCase(Locale.ROOT).trim().replace(' ', '_');
+                sender.sendMessage("[CustomMobs] Item guardado como '" + name + "' en items/" + name + ".yml.");
+                sender.sendMessage("[CustomMobs] Para que caiga, en el yml del mob: drops: - item: '" + name + "'");
+            }
+            case "list" -> {
+                var names = this.plugin.drops().catalog().names();
+                sender.sendMessage("[CustomMobs] Items guardados (" + names.size() + "):");
+                for (String name : names) {
+                    sender.sendMessage(" - " + name);
+                }
+            }
+            case "remove" -> {
+                if (args.length < 3 || !this.plugin.drops().catalog().remove(args[2])) {
+                    sender.sendMessage("[CustomMobs] Uso: /custommobs item remove <nombre> (debe existir)");
+                    return;
+                }
+                sender.sendMessage("[CustomMobs] Item '" + args[2].toLowerCase(Locale.ROOT) + "' borrado del catalogo.");
+            }
+            default -> sender.sendMessage(usage);
+        }
+    }
+
     /** Lista las claves de encantamiento disponibles (incluye las de ExcellentEnchants). */
     private void enchants(CommandSender sender, String[] args) {
         String filter = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "";
@@ -337,6 +450,8 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("[CustomMobs] /custommobs reload | list | give <id> [jugador] | spawn <id> [mundo x y z]");
         sender.sendMessage("[CustomMobs]           | remove [radio] | active | kill <id> | enchants [filtro]");
         sender.sendMessage("[CustomMobs]           | cuota [jugador] | cuota recontar <jugador> | cuota retirar <jugador>");
+        sender.sendMessage("[CustomMobs]           | item save <nombre> | item list | item remove <nombre>  (catalogo de items)");
+        sender.sendMessage("[CustomMobs]           | color <color|nada> | glow <color|nada>  (tus player mobs)");
     }
 
     @Override
@@ -344,7 +459,8 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
                                       @NotNull String alias, @NotNull String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String option : List.of("reload", "list", "give", "spawn", "remove", "active", "kill", "enchants", "cuota")) {
+            for (String option : List.of("reload", "list", "give", "spawn", "remove", "active", "kill",
+                    "enchants", "cuota", "item", "color", "glow")) {
                 if (option.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(option);
                 }

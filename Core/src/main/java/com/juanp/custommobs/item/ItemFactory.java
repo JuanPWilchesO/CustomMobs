@@ -1,5 +1,6 @@
 package com.juanp.custommobs.item;
 
+import com.juanp.custommobs.drop.ItemCatalog;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -13,7 +14,29 @@ public final class ItemFactory {
     private ItemFactory() {
     }
 
-    public static ItemStack build(EquipItem spec, Consumer<String> onUnknownEnchant) {
+    /**
+     * @param catalog  catalogo de objetos con nombre; puede ser {@code null}
+     * @param onProblem recibe el motivo del problema, ya redactado, para que quien llama
+     *                  solo tenga que añadir a que mob se refiere
+     * @return el objeto, o {@code null} si no se pudo construir
+     */
+    public static ItemStack build(EquipItem spec, ItemCatalog catalog, Consumer<String> onProblem) {
+        // Con 'item:' el objeto sale del catalogo tal cual: conserva su NBT, que es
+        // justamente lo que el yml no puede escribir.
+        if (spec.fromCatalog()) {
+            ItemStack stored = catalog == null ? null : catalog.get(spec.itemName()).orElse(null);
+            if (stored == null) {
+                if (onProblem != null) {
+                    onProblem.accept("Item de catalogo desconocido '" + spec.itemName() + "'");
+                }
+                return null;
+            }
+            return stored.clone();
+        }
+
+        if (spec.material() == null) {
+            return null;
+        }
         ItemStack item = new ItemStack(spec.material());
 
         ItemMeta meta = item.getItemMeta();
@@ -37,8 +60,8 @@ public final class ItemFactory {
         for (var entry : spec.enchants().entrySet()) {
             Enchantment enchantment = Enchants.resolve(entry.getKey());
             if (enchantment == null) {
-                if (onUnknownEnchant != null) {
-                    onUnknownEnchant.accept(entry.getKey());
+                if (onProblem != null) {
+                    onProblem.accept("Encantamiento desconocido '" + entry.getKey() + "'");
                 }
                 continue;
             }

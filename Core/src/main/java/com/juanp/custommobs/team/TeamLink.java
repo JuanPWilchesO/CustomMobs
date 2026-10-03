@@ -23,4 +23,10 @@ public interface TeamLink {
 
     /** {@code true} si el jugador pertenece a un team enemigo del team indicado. */
     boolean isEnemyTeam(UUID teamId, UUID player);
+
+    /**
+     * Jefe del team del jugador, si tiene team. Es quien decide los ajustes del team
+     * (por ejemplo, el color de sus player mobs).
+     */
+    Optional<UUID> ownerOf(UUID player);
 }

@@ -1,6 +1,10 @@
 package com.juanp.custommobs.config;
 
 import com.juanp.custommobs.combat.PlayerTargetMode;
+import com.juanp.custommobs.mob.Texts;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -24,6 +28,9 @@ import java.util.Map;
  * @param adminPermission     permiso para los comandos de administracion
  * @param defaultPlayerMobs   cupo de quien no tenga grupo mapeado; {@code 0} = sin limite
  * @param groupLimits         cupo por grupo de LuckPerms, con las claves en minusculas
+ * @param signature           firma que el plugin escribe en el log al arrancar; vacia = no se muestra
+ * @param motdEnabled         si el MOTD se manda al entrar
+ * @param motd                lineas del MOTD, ya con los codigos de color traducidos
  */
 public record PluginConfig(
         boolean debug,
@@ -38,7 +45,10 @@ public record PluginConfig(
         String playerPermission,
         String adminPermission,
         int defaultPlayerMobs,
-        Map<String, Integer> groupLimits
+        Map<String, Integer> groupLimits,
+        String signature,
+        boolean motdEnabled,
+        List<String> motd
 ) {
 
     public static PluginConfig load(FileConfiguration cfg) {
@@ -59,8 +69,19 @@ public record PluginConfig(
                 cfg.getString("permissions.player", "custommobs.player"),
                 cfg.getString("permissions.admin", "custommobs.admin"),
                 Math.max(0, cfg.getInt("limits.default-player-mobs", 0)),
-                readGroupLimits(cfg)
+                readGroupLimits(cfg),
+                cfg.getString("branding.signature", ""),
+                cfg.getBoolean("branding.motd-enabled", true),
+                colorList(cfg.getStringList("branding.motd"))
         );
+    }
+
+    private static List<String> colorList(List<String> raw) {
+        List<String> lines = new ArrayList<>(raw.size());
+        for (String line : raw) {
+            lines.add(Texts.color(line));
+        }
+        return List.copyOf(lines);
     }
 
     /** Cupo por grupo. Las claves se guardan en minusculas para comparar sin sorpresas. */

@@ -3,6 +3,7 @@ package com.juanp.custommobs.mob;
 import com.juanp.custommobs.item.EquipItem;
 import com.juanp.custommobs.combat.PlayerTargetMode;
 import com.juanp.custommobs.item.RecipeSpec;
+import com.juanp.custommobs.drop.DropSpec;
 import com.juanp.custommobs.skill.SkillSpec;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -39,6 +40,9 @@ import java.util.Map;
  * @param respawnSeconds   segundos hasta reaparecer en su bloque; {@code 0} = una sola vida
  *                         (solo mobs de servidor: convierte el punto en un spawner)
  * @param skills           habilidades activas del mob (dano, curacion, habla, pociones)
+ * @param drops            tabla de drops escrita a mano en el yml (los capturados con el
+ *                         comando viven aparte, en {@code drops/<id>.yml})
+ * @param clearVanillaDrops si {@code true}, el mob no suelta nada de lo vanilla: solo su tabla
  */
 public record MobDefinition(
         String id,
@@ -60,7 +64,9 @@ public record MobDefinition(
         boolean burnsInDaylight,
         boolean usesAi,
         int respawnSeconds,
-        List<SkillSpec> skills
+        List<SkillSpec> skills,
+        List<DropSpec> drops,
+        boolean clearVanillaDrops
 ) {
 
     /** Vida maxima configurada, o 20 si no se especifico. */

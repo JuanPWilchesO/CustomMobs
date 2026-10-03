@@ -128,6 +128,19 @@ Se aceptan tambien los nombres de Bukkit (`head`, `chest`, `CHEST`…).
 
 `drop-chance` va de `0.0` (nunca suelta) a `1.0` (siempre).
 
+**Un slot tambien puede salir del catalogo** de objetos con nombre — es la via para
+ equipar algo con NBT, como un encantamiento de otro plugin:
+
+```yaml
+equipment:
+  main-hand:
+    item: espada_del_sargento    # nombre guardado con /custommobs item save
+    drop-chance: 0.0
+```
+
+Con `item:` el objeto manda **tal cual** y conserva su NBT; solo se le respeta
+`drop-chance`, que es propiedad del mob y no del objeto.
+
 ### Encantamientos
 
 Los nombres se resuelven en este orden:
@@ -287,6 +300,78 @@ Detalles que importan:
 - Una skill mal escrita se descarta sola. Nunca tumba la carga del mob.
 - El intervalo de evaluacion es `skills.interval-ticks` del config (20 = 1 segundo).
 
+### Tabla de drops
+
+```yaml
+drops:
+  # Objetos vanilla: legibles y a mano.
+  - material: DIAMOND
+    amount: 2
+    chance: 0.5
+
+  # Objetos con NBT: se referencian por NOMBRE (ver el catalogo mas abajo).
+  - item: espada_del_sargento
+    chance: 0.25
+    min: 1
+    max: 1
+
+# true = el mob no suelta NADA de lo vanilla: solo su tabla.
+clear-vanilla-drops: false
+```
+
+`amount` es un atajo de `min`/`max`. Un nombre que no exista en el catalogo no rompe
+nada: se avisa **una vez** en el log, nombrando el mob, y ese drop se omite.
+
+---
+
+## Catalogo de objetos (NBT)
+
+Hay objetos que **no se pueden escribir a mano** en un yml: un encantamiento de
+ExcellentEnchants, cualquier NBT puesto por otro plugin. Para esos esta el catalogo.
+
+```
+/custommobs item save <nombre>     guarda el objeto de tu mano
+/custommobs item list              lista los nombres guardados
+/custommobs item remove <nombre>   borra uno
+```
+
+Cada objeto vive en **`items/<nombre>.yml`**, con su nombre escrito dentro:
+
+```yaml
+nombre: espada_del_sargento
+item: '<base64 con todo el NBT>'
+etiqueta: '&cEspada del Sargento'
+```
+
+El nombre se normaliza a minusculas y sin espacios, porque acaba siendo un nombre de
+archivo. Despues lo llamas por ese nombre desde la tabla de drops o desde el
+equipamiento. **Un mismo objeto sirve para varios mobs.**
+
+---
+
+## Color y brillo de los player mobs
+
+Cada jugador puede distinguir sus mobs de los de los demas:
+
+```
+/custommobs color <color|nada>     color del nombre
+/custommobs glow <color|nada>      brillo, y de que color
+```
+
+- El color **tine el nombre entero** y sobreescribe el que escribio el admin en el yml.
+- El brillo **se hereda del yml** del mob. Si el yml no lo tiene, se queda sin glow.
+  `nada` lo apaga explicitamente.
+- **Con Teams, el ajuste es del team**: lo decide solo su jefe y aplica a los mobs de
+  todos los miembros, para que un equipo se vea uniforme. Sin Teams, cada jugador manda
+  sobre los suyos.
+
+El color del brillo lo determina un **equipo de scoreboard** (asi funciona en Minecraft),
+no la entidad: el plugin crea equipos `cm_<color>` y limpia la entrada al morir o al
+cambiar de color.
+
+Se guarda en `styles.yml` y se aplica en caliente: cambias el color y tus mobs vivos se
+actualizan al momento.
+
 ---
 
 ## Facciones y actitud
@@ -330,6 +415,11 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `cuota [jugador]` | consulta el cupo de mobs |
 | `cuota recontar <jugador>` | rehace la cuenta **sin tocar mobs** |
 | `cuota retirar <jugador>` | retira sus mobs y deja el cupo en cero (**destructivo**) |
+| `item save <nombre>` | guarda el objeto de tu mano en el catalogo, con su NBT |
+| `item list` | lista los objetos guardados |
+| `item remove <nombre>` | borra uno del catalogo |
+| `color <color\|nada>` | color del nombre de tus player mobs |
+| `glow <color\|nada>` | brillo de tus player mobs |
 
 **`recontar` vs `retirar`** — la diferencia es importante:
 
@@ -411,7 +501,20 @@ permissions:
 limits:
   default-player-mobs: 3
   groups: { default: 3, vip: 5, staff: 10 }
+
+branding:
+  signature: 'Plugin by: AP2P Project'   # firma en el log al arrancar; vacia = no se muestra
+  motd-enabled: true                     # false = sin mensaje de bienvenida
+  motd:                                  # se manda al entrar; admite '&' para color
+    - '&0&m----------------------------------'
+    - ' &cCustomMobs &0| &cAP2P Project'
+    - ' &cBienvenido, &4{jugador}&c.'
+    - '&0&m----------------------------------'
 ```
+
+El MOTD admite los marcadores `{jugador}`, `{online}` y `{max}`. Cambiarlo **no pide
+reinicio**: se aplica con `/custommobs reload`. La firma, en cambio, se escribe al
+habilitar el plugin, asi que esa si pide reiniciar el servidor.
 
 ### Venganza (aggro)
 
@@ -445,6 +548,8 @@ api.spawn("guardia", location, ownerPlayer);      // invoca uno
 | `factions.yml` | relaciones entre facciones |
 | `mobs/*.yml` | un archivo por mob |
 | `player-mobs.yml` | cupo de mobs de jugador (incluye los de chunks descargados) |
+| `styles.yml` | color de nombre y brillo elegidos por jugador y por team |
+| `items/<nombre>.yml` | catalogo de objetos con NBT, uno por nombre |
 | `data/spawners.yml` | puntos de aparicion que sobreviven a la muerte del mob |
 
 El vinculo de cada mob (dueno, team, definicion, punto de aparicion) vive en el

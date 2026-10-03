@@ -10,6 +10,7 @@ import com.juanp.custommobs.group.GroupLink;
 import com.juanp.custommobs.item.Attributes;
 import com.juanp.custommobs.item.EquipmentApplier;
 import com.juanp.custommobs.spawner.SpawnerEntry;
+import com.juanp.custommobs.style.StyleService;
 import com.juanp.custommobs.spawner.SpawnerRegistry;
 import com.juanp.custommobs.team.TeamLink;
 import org.bukkit.Bukkit;
@@ -58,6 +59,8 @@ public final class MobService implements Listener {
     private final GroupLink groupLink;
     private final SpawnerRegistry spawners;
     private final Map<UUID, CustomMob> active = new ConcurrentHashMap<>();
+
+    private StyleService styles;
 
     private boolean paperGoals = true;
 
@@ -133,6 +136,15 @@ public final class MobService implements Listener {
      */
     public int countPlayerMobs(UUID ownerId) {
         return this.playerMobs.count(ownerId);
+    }
+
+    /**
+     * Engancha el servicio de estilos. Se hace despues de construir porque el estilo
+     * necesita al servicio de mobs, y el servicio de mobs necesita al estilo para
+     * aplicar el nombre: seria un ciclo en el constructor.
+     */
+    public void attachStyles(StyleService styles) {
+        this.styles = styles;
     }
 
     /** Lee los grupos del jugador (LuckPerms, o el respaldo sin el). */
@@ -314,8 +326,8 @@ public final class MobService implements Listener {
         }
 
         this.applyAttributes(mob, definition);
-        EquipmentApplier.apply(mob, definition, key ->
-                this.plugin.getLogger().warning("Encantamiento desconocido '" + key + "' en " + definition.id()));
+        EquipmentApplier.apply(mob, definition, this.plugin.drops().catalog(),
+                problem -> this.plugin.getLogger().warning(problem + " en " + definition.id()));
 
         UUID teamId = ownerId != null ? this.teamLink.teamOf(ownerId).orElse(null) : null;
         var container = mob.getPersistentDataContainer();
@@ -379,9 +391,15 @@ public final class MobService implements Listener {
                 this.playerMobs.add(customMob.ownerId(), entityId);
             }
             // La definicion manda: reafirmamos el nombre al cargar. Un mob guardado con el
-            // nombre que le impuso otro plugin lo conservaria para siempre si no.
-            entity.setCustomName(customMob.definition().displayName());
-            entity.setCustomNameVisible(true);
+            // nombre que le impuso otro plugin lo conservaria para siempre si no. Encima va
+            // el estilo que haya elegido el dueno (color del nombre y brillo).
+            if (this.styles != null) {
+                this.styles.applyName(entity, customMob.definition(), customMob.ownerId(), customMob.teamId());
+                this.styles.applyGlow(entity, customMob.definition(), customMob.ownerId(), customMob.teamId());
+            } else {
+                entity.setCustomName(customMob.definition().displayName());
+                entity.setCustomNameVisible(true);
+            }
             this.disguiseLink.apply(entity, customMob.definition());
             // Un mob de rol con 'ai: false' se queda quieto en su puesto.
             if (!customMob.definition().usesAi() && entity instanceof Mob mob) {
@@ -456,6 +474,9 @@ public final class MobService implements Listener {
         // El cupo se toca al invocar y al morir: se guarda al vuelo, no en cada cambio.
         if (this.playerMobs.isDirty()) {
             this.playerMobs.save();
+        }
+        if (this.styles != null && this.styles.registry().isDirty()) {
+            this.styles.registry().save();
         }
     }
 
@@ -550,14 +571,20 @@ public final class MobService implements Listener {
         }
     }
 
-    /** Un mob de jugador que muere deja libre su cupo. */
+    /** Un mob de jugador que muere deja libre su cupo y limpia su brillo. */
     @EventHandler
     public void onDeath(EntityDeathEvent event) {
+        if (this.styles != null) {
+            this.styles.clear(event.getEntity());
+        }
         this.playerMobs.remove(event.getEntity().getUniqueId());
     }
 
     /** Elimina un mob y, si era un spawner, deja de reanimarlo. */
     public void despawn(CustomMob customMob) {
+        if (this.styles != null) {
+            this.styles.clear(customMob.entity());
+        }
         this.playerMobs.remove(customMob.entity().getUniqueId());
         UUID spawnerId = this.spawnerIdOf(customMob.entity());
         if (spawnerId != null) {

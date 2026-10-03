@@ -13,16 +13,21 @@ import com.juanp.custommobs.craft.CraftService;
 import com.juanp.custommobs.craft.EggListener;
 import com.juanp.custommobs.disguise.DisguiseLink;
 import com.juanp.custommobs.disguise.DisguiseLinkResolver;
+import com.juanp.custommobs.drop.DropListener;
+import com.juanp.custommobs.drop.DropService;
 import com.juanp.custommobs.faction.FactionBook;
 import com.juanp.custommobs.group.GroupLink;
 import com.juanp.custommobs.group.GroupLinkResolver;
 import com.juanp.custommobs.impl.CustomMobsApiImpl;
+import com.juanp.custommobs.message.MotdListener;
 import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
 import com.juanp.custommobs.skill.SkillService;
 import com.juanp.custommobs.spawner.SpawnerListener;
 import com.juanp.custommobs.spawner.SpawnerRegistry;
+import com.juanp.custommobs.style.StyleRegistry;
+import com.juanp.custommobs.style.StyleService;
 import com.juanp.custommobs.team.TeamLink;
 import com.juanp.custommobs.team.TeamLinkResolver;
 import org.bukkit.command.PluginCommand;
@@ -44,6 +49,8 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private GroupLink groupLink;
     private FactionBook factions;
     private DisguiseLink disguiseLink;
+    private DropService dropService;
+    private StyleService styleService;
     private SpawnerRegistry spawners;
     private CraftService craftService;
     private SoundService soundService;
@@ -56,6 +63,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
     public void onEnable() {
         this.saveDefaultConfig();
         this.config = PluginConfig.load(this.getConfig());
+
+        // La firma va lo primero que escribe el plugin, para que se vea al arrancar.
+        if (!this.config.signature().isBlank()) {
+            this.getLogger().info(this.config.signature());
+        }
 
         this.registry = new MobRegistry(this);
         this.registry.reload();
@@ -76,6 +88,12 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.mobService.probeGoals();
 
         this.soundService = new SoundService(this.mobService);
+        this.dropService = new DropService(this);
+
+        StyleRegistry styleRegistry = new StyleRegistry(this);
+        styleRegistry.load();
+        this.styleService = new StyleService(this.mobService, styleRegistry);
+        this.mobService.attachStyles(this.styleService);
 
         this.craftService = new CraftService(this, this.registry, this.mobService.keys());
         this.craftService.registerAll();
@@ -91,6 +109,8 @@ public final class CustomMobsPlugin extends JavaPlugin {
         pluginManager.registerEvents(new SoundListener(this.mobService, this.soundService), this);
         pluginManager.registerEvents(new DaylightListener(this.mobService), this);
         pluginManager.registerEvents(new SpawnerListener(this.mobService), this);
+        pluginManager.registerEvents(new DropListener(this.mobService, this.dropService), this);
+        pluginManager.registerEvents(new MotdListener(this), this);
 
         PluginCommand command = this.getCommand("custommobs");
         if (command != null) {
@@ -130,6 +150,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
     public void onDisable() {
         if (this.mobService != null) {
             this.mobService.playerMobs().save();
+        }
+        if (this.styleService != null) {
+            this.styleService.registry().save();
         }
         if (this.targetingTask != null) {
             this.targetingTask.cancel();
@@ -179,6 +202,14 @@ public final class CustomMobsPlugin extends JavaPlugin {
 
     public MobService mobs() {
         return this.mobService;
+    }
+
+    public DropService drops() {
+        return this.dropService;
+    }
+
+    public StyleService styles() {
+        return this.styleService;
     }
 
     public CraftService craft() {

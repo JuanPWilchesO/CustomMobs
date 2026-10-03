@@ -67,4 +67,12 @@ public final class TeamsTeamLink implements TeamLink {
         return mine.get().enemies().contains(other.get().name())
                 || other.get().enemies().contains(mine.get().name());
     }
+
+    @Override
+    public Optional<UUID> ownerOf(UUID player) {
+        if (player == null) {
+            return Optional.empty();
+        }
+        return this.api.getTeam(player).map(TeamView::owner);
+    }
 }

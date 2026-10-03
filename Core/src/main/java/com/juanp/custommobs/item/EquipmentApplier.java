@@ -1,5 +1,6 @@
 package com.juanp.custommobs.item;
 
+import com.juanp.custommobs.drop.ItemCatalog;
 import com.juanp.custommobs.mob.MobDefinition;
 import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
@@ -15,7 +16,8 @@ public final class EquipmentApplier {
     private EquipmentApplier() {
     }
 
-    public static void apply(Mob mob, MobDefinition definition, Consumer<String> onUnknownEnchant) {
+    public static void apply(Mob mob, MobDefinition definition, ItemCatalog catalog,
+                             Consumer<String> onProblem) {
         EntityEquipment equipment = mob.getEquipment();
         if (equipment == null) {
             return;
@@ -23,7 +25,11 @@ public final class EquipmentApplier {
 
         for (Map.Entry<EquipmentSlot, EquipItem> entry : definition.equipment().entrySet()) {
             EquipmentSlot slot = entry.getKey();
-            ItemStack item = ItemFactory.build(entry.getValue(), onUnknownEnchant);
+            ItemStack item = ItemFactory.build(entry.getValue(), catalog, onProblem);
+            if (item == null) {
+                // Sin objeto no se toca el slot: mejor vacio que un item a medias.
+                continue;
+            }
 
             switch (slot) {
                 case HEAD -> equipment.setHelmet(item);
