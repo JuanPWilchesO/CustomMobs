@@ -66,12 +66,35 @@ public record PluginConfig(
                 Math.max(1L, cfg.getLong("skills.interval-ticks", 20L)),
                 cfg.getString("permissions.player", "custommobs.player"),
                 cfg.getString("permissions.admin", "custommobs.admin"),
-                Math.max(0, cfg.getInt("limits.default-player-mobs", 0)),
+                // El mismo valor que trae la plantilla: un servidor con un config.yml
+                // anterior no debe quedarse sin tope por no tener la clave.
+                Math.max(0, cfg.getInt("limits.default-player-mobs", 3)),
                 readGroupLimits(cfg),
                 cfg.getBoolean("branding.motd-enabled", true),
-                colorList(cfg.getStringList("branding.motd"))
+                motdOf(cfg)
         );
     }
+
+    /**
+     * MOTD efectivo: el del yml si lo define, y si no el que trae el plugin.
+     *
+     * <p>Hace falta un valor por defecto en el codigo porque {@code config.yml} NO se
+     * reescribe en un servidor que ya lo tenia: sin esto, un servidor existente se quedaria
+     * sin MOTD solo porque su archivo es anterior a esta seccion.
+     */
+    private static List<String> motdOf(FileConfiguration cfg) {
+        if (cfg.isList("branding.motd")) {
+            return colorList(cfg.getStringList("branding.motd"));
+        }
+        return DEFAULT_MOTD;
+    }
+
+    /** El mismo MOTD que trae la plantilla del config, para servidores con un yml anterior. */
+    private static final List<String> DEFAULT_MOTD = colorList(List.of(
+            "&0&m----------------------------------",
+            " &cCustomMobs &0| &cAP2P Project",
+            " &cBienvenido, &4{jugador}&c.",
+            "&0&m----------------------------------"));
 
     private static List<String> colorList(List<String> raw) {
         List<String> lines = new ArrayList<>(raw.size());
