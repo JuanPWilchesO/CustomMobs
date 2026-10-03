@@ -4,7 +4,7 @@ main: com.juanp.custommobs.CustomMobsPlugin
 api-version: '1.21'
 author: Juan Pablo
 description: Mobs custom definidos por YAML, invocables por crafteo, con vinculo a Teams.
-website: https://github.com/juanp
+website: https://github.com/JuanPWilchesO/CustomMobs
 
 softdepend:
   - Teams
