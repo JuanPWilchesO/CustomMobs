@@ -43,6 +43,8 @@ import java.util.Map;
  * @param drops            tabla de drops escrita a mano en el yml (los capturados con el
  *                         comando viven aparte, en {@code drops/<id>.yml})
  * @param clearVanillaDrops si {@code true}, el mob no suelta nada de lo vanilla: solo su tabla
+ * @param chunkRadius      radio en chunks que se mantiene cargado alrededor de su bloque;
+ *                         {@code null} = usar el valor global del config
  */
 public record MobDefinition(
         String id,
@@ -66,7 +68,8 @@ public record MobDefinition(
         int respawnSeconds,
         List<SkillSpec> skills,
         List<DropSpec> drops,
-        boolean clearVanillaDrops
+        boolean clearVanillaDrops,
+        Integer chunkRadius
 ) {
 
     /** Vida maxima configurada, o 20 si no se especifico. */

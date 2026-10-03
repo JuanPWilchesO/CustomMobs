@@ -140,6 +140,26 @@ public final class MobService implements Listener {
     }
 
     /**
+     * Mobs de jugador desplegados de un tipo de ancla concreto.
+     *
+     * <p>Las dos cuentas —anclados al dueno y anclados a un bloque— son independientes:
+     * llenar una no consume la otra.
+     */
+    public int countPlayerMobs(UUID ownerId, boolean pointAnchored) {
+        int count = 0;
+        for (PlayerMobRegistry.MobLink link : this.playerMobs.all()) {
+            if (ownerId == null || !link.deployed() || !ownerId.equals(link.owner())) {
+                continue;
+            }
+            MobDefinition definition = this.registry.get(link.definitionId()).orElse(null);
+            if (definition != null && definition.leash().anchoredToPoint() == pointAnchored) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
      * Engancha el servicio de estilos. Se hace despues de construir porque el estilo
      * necesita al servicio de mobs, y el servicio de mobs necesita al estilo para
      * aplicar el nombre: seria un ciclo en el constructor.
@@ -187,10 +207,30 @@ public final class MobService implements Listener {
         return best >= 0 ? best : this.config.defaultPlayerMobs();
     }
 
-    /** {@code true} si el jugador ya alcanzo su maximo de mobs simultaneos. */
+    /** Cupo de mobs anclados a un bloque, segun el grupo de LuckPerms. */
+    public int pointLimitOf(UUID ownerId) {
+        int best = -1;
+        if (ownerId != null) {
+            for (String group : this.groupLink.groupsOf(ownerId)) {
+                Integer limit = this.config.pointGroupLimits().get(group);
+                if (limit != null && limit > best) {
+                    best = limit;
+                }
+            }
+        }
+        return best >= 0 ? best : this.config.defaultPointMobs();
+    }
+
+    /** {@code true} si el jugador ya alcanzo su maximo de mobs anclados al dueno. */
     public boolean atPlayerLimit(UUID ownerId) {
         int max = this.limitOf(ownerId);
-        return max > 0 && this.countPlayerMobs(ownerId) >= max;
+        return max > 0 && this.countPlayerMobs(ownerId, false) >= max;
+    }
+
+    /** {@code true} si el jugador ya alcanzo su maximo de mobs anclados a un bloque. */
+    public boolean atPointLimit(UUID ownerId) {
+        int max = this.pointLimitOf(ownerId);
+        return max > 0 && this.countPlayerMobs(ownerId, true) >= max;
     }
 
     /** Resultado de vaciar el cupo de un jugador. */
@@ -265,8 +305,13 @@ public final class MobService implements Listener {
 
     /** Cupo restante del jugador; {@code -1} si no hay limite configurado. */
     public int remainingPlayerMobs(UUID ownerId) {
-        int max = this.limitOf(ownerId);
-        return max <= 0 ? -1 : Math.max(0, max - this.countPlayerMobs(ownerId));
+        return this.remainingPlayerMobs(ownerId, false);
+    }
+
+    /** Cupo restante de un tipo de ancla; {@code -1} si no hay limite configurado. */
+    public int remainingPlayerMobs(UUID ownerId, boolean pointAnchored) {
+        int max = pointAnchored ? this.pointLimitOf(ownerId) : this.limitOf(ownerId);
+        return max <= 0 ? -1 : Math.max(0, max - this.countPlayerMobs(ownerId, pointAnchored));
     }
 
     public Optional<CustomMob> find(UUID entityId) {
@@ -305,8 +350,10 @@ public final class MobService implements Listener {
      */
     public Optional<PlayerMobRegistry.MobLink> deploy(MobDefinition definition, Location location,
                                                      Player owner, UUID linkId) {
-        if (owner == null || definition.server() || this.atPlayerLimit(owner.getUniqueId())
-                || !this.worldEnabled(location.getWorld())) {
+        if (owner == null || definition.server() || !this.worldEnabled(location.getWorld())
+                || (definition.leash().anchoredToPoint()
+                        ? this.atPointLimit(owner.getUniqueId())
+                        : this.atPlayerLimit(owner.getUniqueId()))) {
             return Optional.empty();
         }
         PlayerMobRegistry.MobLink link = linkId == null ? null
@@ -324,6 +371,9 @@ public final class MobService implements Listener {
             return Optional.empty();
         }
         this.playerMobs.deploy(link.linkId(), entity.getUniqueId());
+        // Se anota donde nacio: para un mob anclado a un bloque, ese punto ES su ancla, y
+        // hace falta saberlo aunque su chunk se descargue.
+        this.playerMobs.move(link.linkId(), entity.getLocation());
         this.playerMobs.save();
         return this.playerMobs.byLink(link.linkId());
     }

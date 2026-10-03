@@ -53,12 +53,21 @@ En `config.yml`:
 
 ```yaml
 limits:
-  default-player-mobs: 3
+  default-player-mobs: 3   # mobs que te siguen (anchor: owner)
+  default-point-mobs: 1    # mobs fijos a un bloque (anchor: point)
   groups:
     default: 3
     vip: 5
     staff: 10
+  point-groups:
+    default: 1
+    vip: 2
+    staff: 3
 ```
+
+El cupo esta **partido en dos cuentas que no se pisan**: los mobs que te siguen y los
+fijos a un bloque. Puedes llevar una llena y seguir colocando de la otra.
+`/custommobs cuota` muestra las dos.
 
 - El grupo se lee de **LuckPerms en el momento de invocar**, no al conectarse: un cambio de
   rango aplica al instante.
@@ -67,3 +76,10 @@ limits:
   `default-player-mobs`. `0` = sin limite.
 - Sin LuckPerms instalado, todos caen al grupo `default`.
 - Cambiar `limits` aplica con `/custommobs reload`, **sin reiniciar**.
+
+### Mobs fijos: su zona se mantiene cargada
+
+Un mob de jugador con `anchor: point` mantiene cargada una zona a su alrededor, para no
+desaparecer ni dejar de contar aunque no haya nadie cerca. El radio sale de
+`point.chunk-radius` del config, y cada mob puede sobrescribirlo con su propio
+`chunk-radius`. Solo se suelta cuando lo recoges con su huevo.

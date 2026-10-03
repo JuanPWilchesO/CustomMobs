@@ -136,7 +136,8 @@ public final class MobLoader {
                 respawnSeconds,
                 skills,
                 drops,
-                cfg.getBoolean("clear-vanilla-drops", false)
+                cfg.getBoolean("clear-vanilla-drops", false),
+                chunkRadius(cfg)
         ));
     }
 
@@ -300,6 +301,17 @@ public final class MobLoader {
                 (int) Math.max(1L, Math.round(asNumber(entry.get("potion-duration-seconds"), 5.0D))),
                 (int) Math.max(0L, Math.round(asNumber(entry.get("potion-amplifier"), 0.0D)))
         );
+    }
+
+    /**
+     * Radio de chunks propio del mob para su ancla de bloque. Si no lo define, se usa el
+     * global del config: {@code null} significa "lo que diga el config".
+     */
+    private static Integer chunkRadius(ConfigurationSection cfg) {
+        if (!cfg.isInt("chunk-radius")) {
+            return null;
+        }
+        return Math.max(0, cfg.getInt("chunk-radius"));
     }
 
     private static String asString(Object value) {

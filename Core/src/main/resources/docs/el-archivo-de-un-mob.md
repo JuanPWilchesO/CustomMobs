@@ -138,6 +138,21 @@ leash:
 
 Los mobs de `category: server` quedan **siempre** anclados a su punto: no se les aplica `anchor`.
 
+### Ancla a un bloque: zona cargada
+
+Un mob de jugador con `anchor: point` vive fijo en su bloque. Para que no desaparezca ni
+deje de contar cuando no hay jugadores cerca, su zona se mantiene **cargada**:
+
+```yaml
+# Radio en chunks que se mantiene cargado alrededor del bloque.
+# Si no se pone, se usa el global (point.chunk-radius del config). 0 = desactivado.
+chunk-radius: 4
+```
+
+Ojo con el coste: es un cuadrado de `(2*radio+1)^2` chunks. Con radio 4 son **81 chunks**
+por mob. Solo se suelta cuando el mob se recoge con su huevo; si luego se coloca en otro
+sitio, se cargan los chunks del lugar nuevo.
+
 ## Apariencia, sonidos y resto
 
 ```yaml

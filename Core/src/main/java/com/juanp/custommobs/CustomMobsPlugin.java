@@ -1,5 +1,6 @@
 package com.juanp.custommobs;
 
+import com.juanp.custommobs.anchor.AnchorChunkService;
 import com.juanp.custommobs.api.CustomMobsApi;
 import com.juanp.custommobs.combat.AggroListener;
 import com.juanp.custommobs.combat.TargetListener;
@@ -79,6 +80,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private SkillService skillService;
     private TargetingTask targetingTask;
     private RecallService recallService;
+    private AnchorChunkService anchorChunks;
     private CustomMobsApiImpl api;
 
     @Override
@@ -160,6 +162,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.recallService = new RecallService(this, this.mobService, this.config);
         this.recallService.runTaskTimer(this, 20L, 20L);
 
+        // Los mobs anclados a un bloque mantienen cargada su zona. Se revisa cada 5 s:
+        // no hace falta correr mas a menudo y asi el coste es despreciable.
+        this.anchorChunks = new AnchorChunkService(this, this.mobService, this.config);
+        this.anchorChunks.runTaskTimer(this, 100L, 100L);
+
         this.ambientTask = new AmbientTask(this.soundService);
         this.ambientTask.runTaskTimer(this, 20L, 20L);
 
@@ -200,6 +207,10 @@ public final class CustomMobsPlugin extends JavaPlugin {
             this.recallService.cancel();
             // Suelta los tickets de chunk antes de que el mundo se guarde.
             this.recallService.shutdown();
+        }
+        if (this.anchorChunks != null) {
+            this.anchorChunks.cancel();
+            this.anchorChunks.shutdown();
         }
         if (this.ambientTask != null) {
             this.ambientTask.cancel();

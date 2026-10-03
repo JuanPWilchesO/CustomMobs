@@ -61,15 +61,31 @@ permissions:
   admin: custommobs.admin
 
 limits:
-  # Cupo de mobs de jugador para quien no tenga grupo mapeado abajo.
+  # Cupo de mobs anclados al DUENO (anchor: owner) para quien no tenga grupo mapeado.
   # Al alcanzarlo, sus huevos dejan de invocar. 0 = sin limite.
   default-player-mobs: 3
-  # Cupo por grupo de LuckPerms. Si el jugador pertenece a varios grupos gana el
-  # cupo mas alto. Sin LuckPerms instalado, todos caen en default-player-mobs.
+  # Cupo de mobs anclados a un BLOQUE (anchor: point). Es una cuenta APARTE de la de
+  # arriba: un jugador puede tener su cupo lleno de mobs que siguen y, ademas, los
+  # mobs fijos que le permita este otro. 0 = sin limite.
+  default-point-mobs: 1
+  # Cupo por grupo de LuckPerms (mobs anclados al dueno). Si el jugador pertenece a
+  # varios grupos gana el cupo mas alto. Sin LuckPerms, todos caen en el default.
   groups:
     default: 3
     vip: 5
     staff: 10
+  # Cupo por grupo para los mobs anclados a un bloque. Mismas reglas que arriba.
+  point-groups:
+    default: 1
+    vip: 2
+    staff: 3
+
+point:
+  # Radio en chunks que se mantiene cargado alrededor del bloque de un mob anclado a
+  # un punto, para que no desaparezca ni deje de contar aunque no haya jugadores
+  # cerca. OJO: es un cuadrado de (2*radio+1)^2 chunks; con el valor 4 son 81 chunks
+  # por mob. 0 = desactivado.
+  chunk-radius: 4
 
 worlds:
   # Mundos donde funciona el plugin. Vacio = todos.

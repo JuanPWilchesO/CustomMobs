@@ -93,9 +93,15 @@ public final class EggListener implements Listener {
             }
         }
 
-        if (this.service.atPlayerLimit(player.getUniqueId())) {
-            player.sendMessage(Texts.color("&cYa tienes " + this.service.limitOf(player.getUniqueId())
-                    + " mobs desplegados, tu maximo. Recoge alguno con su huevo."));
+        // Las dos cuentas son aparte: mobs que siguen al dueno y mobs fijos a un bloque.
+        boolean point = definition.get().leash().anchoredToPoint();
+        if (point ? this.service.atPointLimit(player.getUniqueId())
+                : this.service.atPlayerLimit(player.getUniqueId())) {
+            int max = point ? this.service.pointLimitOf(player.getUniqueId())
+                    : this.service.limitOf(player.getUniqueId());
+            player.sendMessage(Texts.color("&cYa tienes " + max
+                    + (point ? " mobs fijos desplegados" : " mobs desplegados")
+                    + ", tu maximo. Recoge alguno con su huevo."));
             return;
         }
 

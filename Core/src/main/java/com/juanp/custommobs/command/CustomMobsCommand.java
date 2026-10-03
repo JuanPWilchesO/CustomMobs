@@ -237,10 +237,17 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        int max = this.plugin.mobs().limitOf(ownerId);
         int used = this.plugin.mobs().countPlayerMobs(ownerId);
-        sender.sendMessage(TAG + " " + label + ": " + used
-                + (max > 0 ? " de " + max + " mobs" : " mobs (sin limite)"));
+        // Dos cuentas aparte: los que siguen al dueno y los fijos a un bloque.
+        int maxOwner = this.plugin.mobs().limitOf(ownerId);
+        int usedOwner = this.plugin.mobs().countPlayerMobs(ownerId, false);
+        int maxPoint = this.plugin.mobs().pointLimitOf(ownerId);
+        int usedPoint = this.plugin.mobs().countPlayerMobs(ownerId, true);
+        sender.sendMessage(TAG + " " + label + ":");
+        sender.sendMessage(" - Siguen al dueno: " + usedOwner
+                + (maxOwner > 0 ? " de " + maxOwner : " (sin limite)"));
+        sender.sendMessage(" - Fijos a un bloque: " + usedPoint
+                + (maxPoint > 0 ? " de " + maxPoint : " (sin limite)"));
         int loaded = 0;
         for (CustomMob customMob : this.plugin.mobs().active()) {
             if (!ownerId.equals(customMob.ownerId())) {

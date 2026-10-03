@@ -25,8 +25,11 @@ import java.util.Map;
  * @param skillIntervalTicks  cada cuantos ticks se evaluan las skills
  * @param playerPermission    permiso para usar los huevos custom
  * @param adminPermission     permiso para los comandos de administracion
- * @param defaultPlayerMobs   cupo de quien no tenga grupo mapeado; {@code 0} = sin limite
+ * @param defaultPlayerMobs   cupo de mobs anclados al dueno; {@code 0} = sin limite
+ * @param defaultPointMobs    cupo de mobs anclados a un bloque; {@code 0} = sin limite
  * @param groupLimits         cupo por grupo de LuckPerms, con las claves en minusculas
+ * @param pointGroupLimits    cupo por grupo para los mobs anclados a un bloque
+ * @param pointChunkRadius    radio en chunks que se mantiene cargado alrededor del bloque
  * @param motdEnabled         si el MOTD se manda al entrar
  * @param motd                lineas del MOTD, ya con los codigos de color traducidos
  * @param enabledWorlds       mundos donde funciona el plugin, en minusculas; vacio = todos
@@ -47,7 +50,10 @@ public record PluginConfig(
         String playerPermission,
         String adminPermission,
         int defaultPlayerMobs,
+        int defaultPointMobs,
         Map<String, Integer> groupLimits,
+        Map<String, Integer> pointGroupLimits,
+        int pointChunkRadius,
         boolean motdEnabled,
         List<String> motd,
         List<String> enabledWorlds,
@@ -80,7 +86,10 @@ public record PluginConfig(
                 // El mismo valor que trae la plantilla: un servidor con un config.yml
                 // anterior no debe quedarse sin tope por no tener la clave.
                 Math.max(0, cfg.getInt("limits.default-player-mobs", 3)),
-                readGroupLimits(cfg),
+                Math.max(0, cfg.getInt("limits.default-point-mobs", 1)),
+                readGroupLimits(cfg, "limits.groups"),
+                readGroupLimits(cfg, "limits.point-groups"),
+                Math.max(0, cfg.getInt("point.chunk-radius", 4)),
                 cfg.getBoolean("branding.motd-enabled", true),
                 motdOf(cfg),
                 lowerList(cfg.getStringList("worlds.enabled")),
@@ -131,8 +140,8 @@ public record PluginConfig(
     }
 
     /** Cupo por grupo. Las claves se guardan en minusculas para comparar sin sorpresas. */
-    private static Map<String, Integer> readGroupLimits(FileConfiguration cfg) {
-        ConfigurationSection section = cfg.getConfigurationSection("limits.groups");
+    private static Map<String, Integer> readGroupLimits(FileConfiguration cfg, String path) {
+        ConfigurationSection section = cfg.getConfigurationSection(path);
         if (section == null) {
             return Map.of();
         }

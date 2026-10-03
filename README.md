@@ -192,6 +192,16 @@ leash:
 
 Los mobs de `category: server` quedan **siempre** anclados a su punto: no se les aplica `anchor`.
 
+Un mob de jugador con `anchor: point` mantiene **cargada** una zona a su alrededor, para
+no desaparecer ni dejar de contar cuando no hay nadie cerca. El radio se configura por
+mob:
+
+```yaml
+chunk-radius: 4   # chunks a la redonda; sin esto, usa point.chunk-radius del config
+```
+
+Ojo: son `(2*radio+1)^2` chunks. Con 4, **81 chunks por mob**.
+
 ### Apariencia, sonidos y resto
 
 ```yaml
@@ -485,6 +495,10 @@ limits:
     staff: 10
 ```
 
+El cupo esta **partido en dos cuentas que no se pisan**: los mobs que te siguen
+(`anchor: owner`) y los fijos a un bloque (`anchor: point`). Puedes llevar una llena y
+seguir colocando de la otra. `/custommobs cuota` muestra las dos.
+
 - El grupo se lee de **LuckPerms en el momento de invocar**, no al conectarse: un cambio
   de rango aplica al instante.
 - Si el jugador pertenece a **varios grupos, gana el cupo mas alto**.
@@ -520,8 +534,13 @@ permissions:
   admin: custommobs.admin
 
 limits:
-  default-player-mobs: 3
+  default-player-mobs: 3          # mobs que te siguen
+  default-point-mobs: 1           # mobs fijos a un bloque
   groups: { default: 3, vip: 5, staff: 10 }
+  point-groups: { default: 1, vip: 2, staff: 3 }
+
+point:
+  chunk-radius: 4                 # chunks que carga un mob fijo a su alrededor
 
 branding:
   motd-enabled: true                     # false = sin mensaje de bienvenida

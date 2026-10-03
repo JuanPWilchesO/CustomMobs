@@ -28,10 +28,18 @@ permissions:
 
 limits:
   default-player-mobs: 3
+  default-point-mobs: 1
   groups:
     default: 3
     vip: 5
     staff: 10
+  point-groups:
+    default: 1
+    vip: 2
+    staff: 3
+
+point:
+  chunk-radius: 4
 
 worlds:
   enabled: []
@@ -59,13 +67,37 @@ recall:
 | `skills.interval-ticks` | cada cuanto se evaluan las skills |
 | `permissions.player` | permiso para usar los huevos |
 | `permissions.admin` | permiso para los comandos de admin |
-| `limits.default-player-mobs` | cupo de quien no tenga grupo mapeado |
-| `limits.groups` | cupo por grupo de LuckPerms |
+| `limits.default-player-mobs` | cupo de mobs anclados al dueno, sin grupo mapeado |
+| `limits.default-point-mobs` | cupo de mobs anclados a un bloque, sin grupo mapeado |
+| `limits.groups` | cupo por grupo de LuckPerms (anclados al dueno) |
+| `limits.point-groups` | cupo por grupo para los anclados a un bloque |
+| `point.chunk-radius` | radio en chunks que se carga alrededor de un bloque ancla |
 | `worlds.enabled` | mundos donde funciona el plugin; vacio = todos |
 | `recall.enabled` | si los mobs abandonados se retiran solos |
 | `recall.radius` | radio de abandono; `0` = derivado de la simulation-distance |
 | `recall.mob-seconds` | segundos antes de destruir el mob abandonado |
 | `recall.chunk-seconds` | segundos antes de liberar el chunk que se mantuvo cargado |
+
+## Dos cuentas de mobs
+
+El cupo de mobs de jugador esta **partido en dos**, y no se pisan:
+
+- **Anclados al dueno** (`anchor: owner`): los que te siguen. Los manda
+  `limits.default-player-mobs` y `limits.groups`.
+- **Anclados a un bloque** (`anchor: point`): los fijos. Los manda
+  `limits.default-point-mobs` y `limits.point-groups`.
+
+Asi puedes llevar el cupo de seguidores lleno y, ademas, tener tus mobs fijos. Un
+`0` en cualquiera de los dos significa **sin limite** para esa cuenta.
+
+## Zona cargada de un mob fijo (`point.chunk-radius`)
+
+Un mob de jugador anclado a un bloque mantiene cargada una zona a su alrededor para no
+desaparecer ni dejar de contar aunque no haya jugadores cerca. El radio se mide en chunks
+y el mob puede sobrescribirlo con su propio `chunk-radius`.
+
+**Coste**: es un cuadrado de `(2*radio+1)^2` chunks por mob. Con el valor por defecto (4)
+son **81 chunks**. Bajalo o ponlo en `0` si notas presion de memoria.
 
 ## El MOTD
 
