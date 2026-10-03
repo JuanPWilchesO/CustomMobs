@@ -20,7 +20,8 @@ import com.juanp.custommobs.group.GroupLink;
 import com.juanp.custommobs.group.GroupLinkResolver;
 import com.juanp.custommobs.impl.CustomMobsApiImpl;
 import com.juanp.custommobs.message.MotdListener;
-import com.juanp.custommobs.mob.Texts;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
@@ -44,11 +45,20 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class CustomMobsPlugin extends JavaPlugin {
 
     /**
-     * Firma del autor en el log. Va hardcodeada a proposito: es la firma del proyecto,
-     * no un ajuste de configuracion. Los colores son los de la bandera palestina:
-     * negro, blanco, rojo y verde.
+     * Firma del autor en la consola. Va hardcodeada a proposito: es la firma del proyecto,
+     * no un ajuste de configuracion.
+     *
+     * <p>Los colores son los de la bandera palestina —negro, blanco, rojo y verde— en
+     * codigos ANSI, que es lo unico que un log puede pintar. Los codigos '&'/'\u00a7' de
+     * Minecraft solo los renderiza el cliente, nunca el servidor: en un log saldrian como
+     * texto literal.
      */
-    private static final String SIGNATURE = Texts.color("&0Plugin &fby &cAP2P &2Project");
+    private static final Component SIGNATURE = Component.text()
+            .append(Component.text("Plugin ", NamedTextColor.BLACK))
+            .append(Component.text("by ", NamedTextColor.WHITE))
+            .append(Component.text("AP2P ", NamedTextColor.RED))
+            .append(Component.text("Project", NamedTextColor.GREEN))
+            .build();
 
     private PluginConfig config;
     private MobRegistry registry;
@@ -73,7 +83,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.config = PluginConfig.load(this.getConfig());
 
         // La firma va lo primero que escribe el plugin, para que se vea al arrancar.
-        this.getLogger().info(SIGNATURE);
+        this.getComponentLogger().info(SIGNATURE);
 
         this.registry = new MobRegistry(this);
         this.registry.reload();

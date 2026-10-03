@@ -514,8 +514,13 @@ branding:
 El MOTD admite los marcadores `{jugador}`, `{online}` y `{max}`. Cambiarlo **no pide
 reinicio**: se aplica con `/custommobs reload`.
 
-La **firma** del log (`Plugin by: AP2P Project`) no se configura: va hardcodeada en el
-codigo, con los colores de la bandera palestina.
+La **firma** (`Plugin by: AP2P Project`) no se configura: va hardcodeada en el codigo,
+con los colores de la bandera palestina.
+
+Ojo con donde se ve ese color: la firma se pinta en la **consola del servidor** (la
+terminal, o el panel que uses), porque los colores viajan como codigos ANSI. En el
+**archivo** `logs/latest.log` sale en texto plano: Paper le quita el formato a todo lo que
+escribe un plugin. Es como funcionan los logs, no una limitacion evitable.
 
 ### Venganza (aggro)
 
