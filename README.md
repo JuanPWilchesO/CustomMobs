@@ -488,9 +488,6 @@ targeting:
   aggro-watch-radius: 24.0     # radio en el que se percibe la agresion al bando
   aggro-on-friendly-mobs: true # reacciona si agreden a un mob del mismo bando
 
-craft:
-  consume-egg: true            # si el huevo se gasta al invocar
-
 skills:
   interval-ticks: 20           # cada cuanto se evaluan las skills
 
@@ -509,6 +506,15 @@ branding:
     - ' &cCustomMobs &0| &cAP2P Project'
     - ' &cBienvenido, &4{jugador}&c.'
     - '&0&m----------------------------------'
+
+worlds:
+  enabled: []                            # mundos donde funciona; vacio = todos
+
+recall:
+  enabled: true                          # ventana de abandono
+  radius: 0.0                            # 0 = derivado de la simulation-distance
+  mob-seconds: 60                        # el mob abandonado se destruye a los 60 s
+  chunk-seconds: 120                     # su chunk se libera a los 120 s
 ```
 
 El MOTD admite los marcadores `{jugador}`, `{online}` y `{max}`. Cambiarlo **no pide
@@ -528,6 +534,20 @@ Cuando un jugador agrede al **bando protegido** de un mob —su dueno, un compan
 aliado o un mob del mismo lado— los mobs de ese bando en `aggro-watch-radius` lo marcan
 como hostil durante `aggro-duration-seconds`, **sin importar el modo de objetivos**.
 La IA y las skills reaccionan igual, porque consultan el mismo registro.
+
+### Ventana de abandono
+
+Un mob anclado a su dueno **solo lo sigue a un mundo habilitado**. Si te vas a un mundo
+excluido, o lo dejas demasiado lejos, el mob no puede volver a tu lado y entra la
+**ventana de abandono**: se pide un ticket de chunk en su posicion, te avisa por chat, el
+mob **se destruye a los 60 s** (y su huevo queda inerte) y su chunk **se libera a los
+120 s**. Si vuelves antes, la cuenta se cancela y el mob se conserva.
+
+**Estar desconectado no es abandono**, y los mobs anclados a un punto no siguen a nadie:
+nunca se abandonan.
+
+Los mundos fuera de `worlds.enabled` bloquean tambien la invocacion: alli el huevo no
+hace nada, con aviso.
 
 ---
 
