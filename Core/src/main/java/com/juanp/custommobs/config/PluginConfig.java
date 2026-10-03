@@ -28,7 +28,6 @@ import java.util.Map;
  * @param adminPermission     permiso para los comandos de administracion
  * @param defaultPlayerMobs   cupo de quien no tenga grupo mapeado; {@code 0} = sin limite
  * @param groupLimits         cupo por grupo de LuckPerms, con las claves en minusculas
- * @param signature           firma que el plugin escribe en el log al arrancar; vacia = no se muestra
  * @param motdEnabled         si el MOTD se manda al entrar
  * @param motd                lineas del MOTD, ya con los codigos de color traducidos
  */
@@ -46,7 +45,6 @@ public record PluginConfig(
         String adminPermission,
         int defaultPlayerMobs,
         Map<String, Integer> groupLimits,
-        String signature,
         boolean motdEnabled,
         List<String> motd
 ) {
@@ -70,7 +68,6 @@ public record PluginConfig(
                 cfg.getString("permissions.admin", "custommobs.admin"),
                 Math.max(0, cfg.getInt("limits.default-player-mobs", 0)),
                 readGroupLimits(cfg),
-                cfg.getString("branding.signature", ""),
                 cfg.getBoolean("branding.motd-enabled", true),
                 colorList(cfg.getStringList("branding.motd"))
         );

@@ -5,8 +5,8 @@ debug: false
 # Firma y mensaje de bienvenida.
 # ---------------------------------------------------------------------------
 branding:
-  # Firma que el plugin escribe en el log al arrancar. Vacia = no se muestra.
-  signature: 'Plugin by: AP2P Project'
+  # La firma del log esta hardcodeada en el codigo, con los colores de la bandera
+  # palestina: no se configura desde aqui.
 
   # Mensaje que ve el jugador al entrar. Admite '&' para color.
   # Marcadores disponibles: {jugador}, {online}, {max}

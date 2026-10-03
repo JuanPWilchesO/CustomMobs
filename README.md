@@ -503,7 +503,6 @@ limits:
   groups: { default: 3, vip: 5, staff: 10 }
 
 branding:
-  signature: 'Plugin by: AP2P Project'   # firma en el log al arrancar; vacia = no se muestra
   motd-enabled: true                     # false = sin mensaje de bienvenida
   motd:                                  # se manda al entrar; admite '&' para color
     - '&0&m----------------------------------'
@@ -513,8 +512,10 @@ branding:
 ```
 
 El MOTD admite los marcadores `{jugador}`, `{online}` y `{max}`. Cambiarlo **no pide
-reinicio**: se aplica con `/custommobs reload`. La firma, en cambio, se escribe al
-habilitar el plugin, asi que esa si pide reiniciar el servidor.
+reinicio**: se aplica con `/custommobs reload`.
+
+La **firma** del log (`Plugin by: AP2P Project`) no se configura: va hardcodeada en el
+codigo, con los colores de la bandera palestina.
 
 ### Venganza (aggro)
 

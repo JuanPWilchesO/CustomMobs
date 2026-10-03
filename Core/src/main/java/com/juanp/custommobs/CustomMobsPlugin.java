@@ -20,6 +20,7 @@ import com.juanp.custommobs.group.GroupLink;
 import com.juanp.custommobs.group.GroupLinkResolver;
 import com.juanp.custommobs.impl.CustomMobsApiImpl;
 import com.juanp.custommobs.message.MotdListener;
+import com.juanp.custommobs.mob.Texts;
 import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
@@ -41,6 +42,13 @@ import org.bukkit.plugin.java.JavaPlugin;
  * CustomMobs: mobs definidos por YAML, invocables por crafteo, vinculados al plugin de Teams.
  */
 public final class CustomMobsPlugin extends JavaPlugin {
+
+    /**
+     * Firma del autor en el log. Va hardcodeada a proposito: es la firma del proyecto,
+     * no un ajuste de configuracion. Los colores son los de la bandera palestina:
+     * negro, blanco, rojo y verde.
+     */
+    private static final String SIGNATURE = Texts.color("&0Plugin &fby &cAP2P &2Project");
 
     private PluginConfig config;
     private MobRegistry registry;
@@ -65,9 +73,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.config = PluginConfig.load(this.getConfig());
 
         // La firma va lo primero que escribe el plugin, para que se vea al arrancar.
-        if (!this.config.signature().isBlank()) {
-            this.getLogger().info(this.config.signature());
-        }
+        this.getLogger().info(SIGNATURE);
 
         this.registry = new MobRegistry(this);
         this.registry.reload();
