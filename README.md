@@ -454,6 +454,10 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `item remove <nombre>` | borra uno del catalogo |
 | `color <color\|nada>` | color del nombre de tus player mobs |
 | `glow <color\|nada>` | brillo de tus player mobs |
+| `spawner list` | lista los spawners (id, mob, mundo, coordenadas) |
+| `spawner remove <id>` | borra un spawner y su mob |
+| `spawner removeall [mob]` | borra todos los spawners, o los de un mob |
+| `spawner reload` | relee `data/spawners.yml` sin reiniciar |
 
 **`recontar` vs `retirar`** — la diferencia es importante:
 
@@ -473,8 +477,9 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `custommobs.player` | invocar mobs con los huevos | `true` |
 | `custommobs.admin` | comandos de administracion | `op` |
 
-El unico comando que un jugador raso puede usar por su cuenta es `cuota` sin
-argumentos, para ver **su propio** cupo.
+Un jugador raso puede hacer **tres cosas** por su cuenta, y nada mas: `cuota` sin
+argumentos (su cupo), y `color` / `glow` (el estilo de **sus** mobs; con Teams lo decide
+solo el jefe y aplica a todo el team). Todo lo demas exige `custommobs.admin`.
 
 > **Ojo con `default: false`**: a diferencia de `op`, **ignora** el flag de operador.
 > Si lo cambias, ni tu (siendo op) podreis invocar hasta que se os conceda el permiso.

@@ -77,6 +77,25 @@ respawn-seconds: 30   # reaparece 30 s despues de morir
 - El registro distingue "murio" (y hay que reanimarlo) de "chunk descargado" (sigue vivo),
   asi que un reinicio del servidor no duplica mobs.
 
+### Quitar un spawner
+
+Desde el juego, `/custommobs remove [radio]` retira los mobs custom cercanos y, si eran de
+un spawner, **borra tambien el spawner**: dejan de reanimarse.
+
+Para limpiarlos de verdad —desde la consola, sin caminar hasta el sitio y aunque su chunk
+este descargado— estan los subcomandos:
+
+```
+/custommobs spawner list                 ver los que hay, con su id
+/custommobs spawner remove <id>          borrar uno (y su mob vivo)
+/custommobs spawner removeall [mob]      borrar todos, o los de un mob
+/custommobs spawner reload               releer el archivo sin reiniciar
+```
+
+Ojo: `/custommobs kill <id>` **no** sirve para esto — mata los mobs, pero si son de un
+spawner **vuelven**. Y editar `data/spawners.yml` a mano no basta con `/custommobs
+reload`: hace falta reiniciar, o usar `spawner reload`.
+
 ## Que se guarda y donde
 
 | Dato | Donde vive |

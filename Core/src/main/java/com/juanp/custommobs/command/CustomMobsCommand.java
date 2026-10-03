@@ -5,6 +5,7 @@ import com.juanp.custommobs.mob.CustomMob;
 import com.juanp.custommobs.style.MobStyle;
 import com.juanp.custommobs.team.TeamLink;
 import com.juanp.custommobs.mob.MobDefinition;
+import com.juanp.custommobs.spawner.SpawnerEntry;
 import org.bukkit.Location;
 import org.bukkit.Registry;
 import org.bukkit.World;
@@ -43,15 +44,22 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
-        // Lo unico que un jugador raso puede hacer por su cuenta es ver SU propio cupo.
+        // Un jugador raso puede hacer TRES cosas por su cuenta, y nada mas:
+        //   - 'cuota' sin argumentos: ver SU propio cupo
+        //   - 'color' y 'glow': el estilo de SUS mobs (o el de su team, si es el jefe)
+        // Todo lo demas es administracion.
+        boolean help = args.length == 0;
         boolean ownQuota = args.length == 1 && "cuota".equalsIgnoreCase(args[0]);
-        String needed = ownQuota ? this.plugin.config().playerPermission()
+        boolean ownStyle = args.length == 2
+                && ("color".equalsIgnoreCase(args[0]) || "glow".equalsIgnoreCase(args[0]));
+        String needed = (help || ownQuota || ownStyle)
+                ? this.plugin.config().playerPermission()
                 : this.plugin.config().adminPermission();
         if (!sender.hasPermission(needed)) {
             sender.sendMessage(TAG + " No tienes permiso (" + needed + ").");
             return true;
         }
-        if (args.length == 0) {
+        if (help) {
             this.help(sender);
             return true;
         }
@@ -76,6 +84,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             case "kill" -> this.kill(sender, args);
             case "enchants" -> this.enchants(sender, args);
             case "item" -> this.item(sender, args);
+            case "spawner" -> this.spawner(sender, args);
             case "color" -> this.setStyle(sender, args, "name");
             case "glow" -> this.setStyle(sender, args, "glow");
             default -> this.help(sender);
@@ -269,6 +278,125 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
     private String ownerName(UUID ownerId) {
         String name = this.plugin.getServer().getOfflinePlayer(ownerId).getName();
         return name != null ? name : ownerId.toString().substring(0, 8);
+    }
+
+    /**
+     * Gobierna los spawners: listarlos, borrarlos y releerlos.
+     *
+     * <p>Hasta ahora la unica via era {@code /custommobs remove}, que exige estar en el
+     * juego y solo alcanza lo que este cargado alrededor. Con esto se limpian desde la
+     * consola y sin caminar hasta el sitio.
+     */
+    private void spawner(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            this.spawnerUsage(sender);
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "list" -> this.spawnerList(sender);
+            case "remove" -> this.spawnerRemove(sender, args);
+            case "removeall" -> this.spawnerRemoveAll(sender, args);
+            case "reload" -> {
+                this.plugin.spawners().load();
+                sender.sendMessage(TAG + " Spawners releidos: " + this.plugin.spawners().size() + ".");
+            }
+            default -> this.spawnerUsage(sender);
+        }
+    }
+
+    private void spawnerUsage(CommandSender sender) {
+        sender.sendMessage(TAG + " Uso: /custommobs spawner list");
+        sender.sendMessage(TAG + "      /custommobs spawner remove <id>");
+        sender.sendMessage(TAG + "      /custommobs spawner removeall [mob]");
+        sender.sendMessage(TAG + "      /custommobs spawner reload");
+    }
+
+    private void spawnerList(CommandSender sender) {
+        var all = this.plugin.spawners().all();
+        sender.sendMessage(TAG + " Spawners (" + all.size() + "):");
+        for (SpawnerEntry entry : all) {
+            sender.sendMessage(" - " + entry.id() + " " + entry.definitionId()
+                    + " en " + entry.world() + " " + (int) entry.x() + " " + (int) entry.y()
+                    + " " + (int) entry.z()
+                    + (entry.respawns() ? " cada " + entry.respawnSeconds() + "s" : " (una sola vida)")
+                    + (entry.awaitingRespawn() ? " [esperando reaparicion]" : ""));
+        }
+    }
+
+    private void spawnerRemove(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage(TAG + " Uso: /custommobs spawner remove <id>");
+            return;
+        }
+        UUID id = parseUuid(args[2]);
+        SpawnerEntry entry = id == null ? null : this.plugin.spawners().get(id).orElse(null);
+        if (entry == null) {
+            sender.sendMessage(TAG + " No hay ningun spawner con ese id; miralos con"
+                    + " '/custommobs spawner list'.");
+            return;
+        }
+        int killed = this.retireSpawnerMobs(entry);
+        this.plugin.spawners().remove(id);
+        this.plugin.spawners().save();
+        sender.sendMessage(TAG + " Spawner de '" + entry.definitionId() + "' borrado"
+                + (killed > 0 ? " (mobs retirados: " + killed + ")" : "") + ".");
+    }
+
+    private void spawnerRemoveAll(CommandSender sender, String[] args) {
+        String filter = args.length >= 3 ? args[2].toLowerCase(Locale.ROOT) : null;
+        List<SpawnerEntry> doomed = new ArrayList<>();
+        for (SpawnerEntry entry : this.plugin.spawners().all()) {
+            if (filter == null || entry.definitionId().equalsIgnoreCase(filter)) {
+                doomed.add(entry);
+            }
+        }
+        if (doomed.isEmpty()) {
+            sender.sendMessage(TAG + " No hay spawners"
+                    + (filter == null ? "" : " de '" + filter + "'") + ".");
+            return;
+        }
+        int killed = 0;
+        for (SpawnerEntry entry : doomed) {
+            killed += this.retireSpawnerMobs(entry);
+            this.plugin.spawners().remove(entry.id());
+        }
+        this.plugin.spawners().save();
+        sender.sendMessage(TAG + " Spawners borrados: " + doomed.size()
+                + (filter == null ? "" : " (de '" + filter + "')")
+                + (killed > 0 ? ", mobs retirados: " + killed : "") + ".");
+    }
+
+    /**
+     * Retira los mobs vivos de ese spawner. Solo toca los que estan claramente en su
+     * punto: los demas pueden ser de otro spawner del mismo mob.
+     */
+    private int retireSpawnerMobs(SpawnerEntry entry) {
+        int removed = 0;
+        for (CustomMob customMob : this.plugin.mobs().active()) {
+            var entity = customMob.entity();
+            if (!entity.isValid() || !customMob.definition().id().equals(entry.definitionId())) {
+                continue;
+            }
+            if (!entry.world().equals(entity.getWorld().getName())) {
+                continue;
+            }
+            Location point = new Location(entity.getWorld(), entry.x(), entry.y(), entry.z());
+            if (entity.getLocation().distanceSquared(point) > 9.0D) {
+                continue;
+            }
+            this.plugin.mobs().despawn(customMob);
+            removed++;
+        }
+        return removed;
+    }
+
+    /** Id desde texto; {@code null} si no es un UUID valido. */
+    private static UUID parseUuid(String raw) {
+        try {
+            return UUID.fromString(raw);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private void active(CommandSender sender) {
@@ -472,6 +600,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(TAG + "           | cuota [jugador] | cuota recontar <jugador> | cuota retirar <jugador>");
         sender.sendMessage(TAG + "           | item save <nombre> | item list | item remove <nombre>  (catalogo de items)");
         sender.sendMessage(TAG + "           | color <color|nada> | glow <color|nada>  (tus player mobs)");
+        sender.sendMessage(TAG + "           | spawner list | spawner remove <id> | spawner removeall [mob] | spawner reload");
     }
 
     @Override
@@ -480,9 +609,34 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (String option : List.of("reload", "list", "give", "spawn", "remove", "active", "kill",
-                    "enchants", "cuota", "item", "color", "glow")) {
+                    "enchants", "cuota", "item", "color", "glow", "spawner")) {
                 if (option.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(option);
+                }
+            }
+            return out;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("spawner")) {
+            for (String option : List.of("list", "remove", "removeall", "reload")) {
+                if (option.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    out.add(option);
+                }
+            }
+            return out;
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("spawner")) {
+            if (args[1].equalsIgnoreCase("remove")) {
+                for (SpawnerEntry entry : this.plugin.spawners().all()) {
+                    String id = entry.id().toString();
+                    if (id.startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                        out.add(id);
+                    }
+                }
+            } else if (args[1].equalsIgnoreCase("removeall")) {
+                for (MobDefinition definition : this.plugin.registry().all()) {
+                    if (definition.id().startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                        out.add(definition.id());
+                    }
                 }
             }
             return out;
