@@ -278,12 +278,36 @@ skills:
 | `id` | texto unico dentro del mob | — |
 | `effect` | `damage` \| `heal` \| `message` \| `potion` | — |
 | `target` | `self` \| `owner` \| `target` \| `enemies` \| `allies` | — |
+| `mode` | `pasiva` \| `activa` \| `interaccion` | `pasiva` |
 | `range` | bloques (tope 32) | `8.0` |
 | `cooldown-seconds` | entero | `5` |
 | `chance` | `0.0` a `1.0` | `1.0` |
 | `amount` | dano o curacion | `0.0` |
 | `message` | texto con `&` | — |
 | `potion` | `poison`, `speed`, `weakness`… | — |
+
+### Cuando se dispara una skill (`mode`)
+
+| `mode` | Cuando entra |
+|---|---|
+| `pasiva` | **siempre**, mientras el mob este cargado (valor por defecto) |
+| `activa` | solo **en combate**, cuando el mob tiene a alguien a quien atacar |
+| `interaccion` | cuando un jugador hace **clic derecho** sobre el mob |
+
+```yaml
+skills:
+  # Dialogo: se dispara con clic derecho. El texto va solo a quien hizo clic,
+  # y admite {jugador} ademas de {mob}.
+  - id: saludo
+    mode: interaccion
+    effect: message
+    target: self
+    cooldown-seconds: 3
+    message: '&e{mob}&f: Buenas, {jugador}.'
+```
+
+Si el jugador trae un huevo custom en la mano, ese clic es del huevo: la interaccion no
+se dispara.
 
 Detalles que importan:
 
