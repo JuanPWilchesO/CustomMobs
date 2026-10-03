@@ -188,8 +188,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
                 + " | abandono: " + (this.config.recallEnabled()
                         ? this.config.recallMobSeconds() + "s/" + this.config.recallChunkSeconds() + "s"
                         : "off")
-                + " | cupo por defecto: " + (this.config.defaultPlayerMobs() > 0
-                        ? String.valueOf(this.config.defaultPlayerMobs()) : "sin limite"));
+                + " | cupo dueno: " + (this.config.defaultPlayerMobs() > 0
+                        ? String.valueOf(this.config.defaultPlayerMobs()) : "sin limite")
+                + " | cupo bloque: " + (this.config.defaultPointMobs() > 0
+                        ? String.valueOf(this.config.defaultPointMobs()) : "sin limite")
+                + " | zona fija: r" + this.config.pointChunkRadius());
     }
 
     @Override
