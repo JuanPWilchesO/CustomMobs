@@ -9,6 +9,7 @@ public final class MobKeys {
     private final NamespacedKey definition;
     private final NamespacedKey owner;
     private final NamespacedKey team;
+    private final NamespacedKey link;
     private final NamespacedKey spawner;
     private final NamespacedKey spawnWorld;
     private final NamespacedKey spawnX;
@@ -19,6 +20,7 @@ public final class MobKeys {
         this.definition = new NamespacedKey(plugin, "definition");
         this.owner = new NamespacedKey(plugin, "owner");
         this.team = new NamespacedKey(plugin, "team");
+        this.link = new NamespacedKey(plugin, "link");
         this.spawner = new NamespacedKey(plugin, "spawner");
         this.spawnWorld = new NamespacedKey(plugin, "spawn_world");
         this.spawnX = new NamespacedKey(plugin, "spawn_x");
@@ -36,6 +38,11 @@ public final class MobKeys {
 
     public NamespacedKey team() {
         return this.team;
+    }
+
+    /** Id del vinculo huevo<->mob. Lo llevan la entidad y el huevo que la representa. */
+    public NamespacedKey link() {
+        return this.link;
     }
 
     public NamespacedKey spawner() {

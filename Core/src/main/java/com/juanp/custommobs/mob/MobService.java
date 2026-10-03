@@ -135,7 +135,8 @@ public final class MobService implements Listener {
      * bloque fijo puede estar en un chunk descargado y aun asi ocupar cupo.
      */
     public int countPlayerMobs(UUID ownerId) {
-        return this.playerMobs.count(ownerId);
+        // Solo los desplegados ocupan cupo: un mob guardado en su huevo no esta en el mundo.
+        return this.playerMobs.deployedCount(ownerId);
     }
 
     /**
@@ -145,6 +146,20 @@ public final class MobService implements Listener {
      */
     public void attachStyles(StyleService styles) {
         this.styles = styles;
+    }
+
+    /**
+     * {@code true} si el plugin funciona en ese mundo.
+     *
+     * <p>La lista vacia significa "todos". Los mundos se identifican por nombre, asi que
+     * sirve cualquier mundo de Bukkit — incluidos los que crea Multiverse-Core.
+     */
+    public boolean worldEnabled(World world) {
+        if (world == null) {
+            return false;
+        }
+        List<String> enabled = this.config.enabledWorlds();
+        return enabled.isEmpty() || enabled.contains(world.getName().toLowerCase(java.util.Locale.ROOT));
     }
 
     /** Lee los grupos del jugador (LuckPerms, o el respaldo sin el). */
@@ -196,17 +211,25 @@ public final class MobService implements Listener {
         if (ownerId == null) {
             return 0;
         }
-        int before = this.playerMobs.count(ownerId);
-        this.playerMobs.reset(ownerId);
-        int seen = 0;
-        for (CustomMob customMob : this.active.values()) {
-            if (ownerId.equals(customMob.ownerId())) {
-                this.playerMobs.add(ownerId, customMob.entity().getUniqueId());
-                seen++;
+        int before = this.playerMobs.linksOf(ownerId).size();
+        // Un vinculo que dice estar desplegado pero cuya entidad esta cargada y muerta
+        // es fantasma: se borra. Los que estan en chunks descargados no se tocan.
+        int ghosts = 0;
+        for (UUID linkId : this.playerMobs.linksOf(ownerId)) {
+            var link = this.playerMobs.byLink(linkId).orElse(null);
+            if (link == null || !link.deployed()) {
+                continue;
+            }
+            LivingEntity entity = this.active.containsKey(link.entityId())
+                    ? this.active.get(link.entityId()).entity() : null;
+            if (entity != null && (entity.isDead() || !entity.isValid())) {
+                this.playerMobs.removeLink(linkId);
+                this.active.remove(link.entityId());
+                ghosts++;
             }
         }
         this.playerMobs.save();
-        return Math.max(0, before - seen);
+        return Math.max(0, ghosts);
     }
 
     /**
@@ -234,7 +257,8 @@ public final class MobService implements Listener {
             this.active.remove(entity.getUniqueId());
             entity.remove();
         }
-        int forgotten = this.playerMobs.reset(ownerId);
+        // Borra tambien los vinculos: los huevos que los llevaban quedan inertes.
+        int forgotten = this.playerMobs.resetOwner(ownerId);
         this.playerMobs.save();
         return new PurgeResult(doomed.size(), Math.max(0, forgotten - doomed.size()));
     }
@@ -262,20 +286,57 @@ public final class MobService implements Listener {
 
     /** Invoca un mob. Los mobs de servidor ignoran el dueno aunque se pase uno. */
     public LivingEntity spawn(MobDefinition definition, Location location, Player owner) {
-        if (owner != null && !definition.server() && this.atPlayerLimit(owner.getUniqueId())) {
-            return null;
+        if (owner == null || definition.server()) {
+            return this.spawn(definition, location, null, null, null);
         }
-        return this.spawn(definition, location, owner, null);
+        // Un mob de jugador nace siempre vinculado a un huevo: es lo que lo representa
+        // despues, y lo que permite guardarlo y volver a desplegarlo.
+        return this.deploy(definition, location, owner, null)
+                .map(link -> this.active.get(link.entityId()))
+                .map(CustomMob::entity)
+                .orElse(null);
+    }
+
+    /**
+     * Despliega un mob de jugador desde un huevo.
+     *
+     * @param linkId vinculo ya existente (huevo ya vinculado), o {@code null} para crear uno
+     * @return el vinculo usado; vacio si no se pudo desplegar
+     */
+    public Optional<PlayerMobRegistry.MobLink> deploy(MobDefinition definition, Location location,
+                                                     Player owner, UUID linkId) {
+        if (owner == null || definition.server() || this.atPlayerLimit(owner.getUniqueId())
+                || !this.worldEnabled(location.getWorld())) {
+            return Optional.empty();
+        }
+        PlayerMobRegistry.MobLink link = linkId == null ? null
+                : this.playerMobs.byLink(linkId).orElse(null);
+        boolean created = link == null;
+        if (created) {
+            link = this.playerMobs.create(owner.getUniqueId(), definition.id());
+        }
+
+        LivingEntity entity = this.spawn(definition, location, owner, null, link.linkId());
+        if (entity == null) {
+            if (created) {
+                this.playerMobs.removeLink(link.linkId());
+            }
+            return Optional.empty();
+        }
+        this.playerMobs.deploy(link.linkId(), entity.getUniqueId());
+        this.playerMobs.save();
+        return this.playerMobs.byLink(link.linkId());
     }
 
     /** Invoca un mob sin dueno: mobs de servidor y pruebas por consola. */
     public LivingEntity spawn(MobDefinition definition, Location location) {
-        return this.spawn(definition, location, null, null);
+        return this.spawn(definition, location, null, null, null);
     }
 
-    private LivingEntity spawn(MobDefinition definition, Location location, Player owner, UUID knownSpawnerId) {
+    private LivingEntity spawn(MobDefinition definition, Location location, Player owner,
+                               UUID knownSpawnerId, UUID linkId) {
         World world = location.getWorld();
-        if (world == null) {
+        if (world == null || !this.worldEnabled(world)) {
             return null;
         }
         Class<? extends Entity> type = definition.entityType().getEntityClass();
@@ -290,7 +351,7 @@ public final class MobService implements Listener {
         // puesto cuando otros plugins (MobHealth, por ejemplo) ven la entidad por primera vez.
         Entity spawned = world.spawn(location, type, entity -> {
             if (entity instanceof Mob mob) {
-                this.configure(mob, definition, ownerId, knownSpawnerId, location);
+                this.configure(mob, definition, ownerId, knownSpawnerId, location, linkId);
             }
         });
         if (!(spawned instanceof Mob mob)) {
@@ -298,15 +359,12 @@ public final class MobService implements Listener {
             return null;
         }
         this.register(mob);
-        if (ownerId != null) {
-            this.playerMobs.add(ownerId, mob.getUniqueId());
-        }
         return mob;
     }
 
     /** Configura una entidad ya existente y la registra. */
     public void prepare(Mob mob, MobDefinition definition, UUID ownerId) {
-        this.configure(mob, definition, ownerId, null, mob.getLocation());
+        this.configure(mob, definition, ownerId, null, mob.getLocation(), null);
         this.register(mob);
     }
 
@@ -315,7 +373,7 @@ public final class MobService implements Listener {
      * Paper, antes de que la entidad entre al mundo.
      */
     private void configure(Mob mob, MobDefinition definition, UUID ownerId, UUID knownSpawnerId,
-                           Location spawn) {
+                           Location spawn, UUID linkId) {
         mob.setPersistent(true);
         mob.setRemoveWhenFarAway(false);
         mob.setCanPickupItems(false);
@@ -332,6 +390,9 @@ public final class MobService implements Listener {
         UUID teamId = ownerId != null ? this.teamLink.teamOf(ownerId).orElse(null) : null;
         var container = mob.getPersistentDataContainer();
         container.set(this.keys.definition(), PersistentDataType.STRING, definition.id());
+        if (linkId != null) {
+            container.set(this.keys.link(), PersistentDataType.STRING, linkId.toString());
+        }
         if (ownerId != null) {
             container.set(this.keys.owner(), PersistentDataType.STRING, ownerId.toString());
         }
@@ -380,15 +441,27 @@ public final class MobService implements Listener {
 
     /** Registra la entidad si lleva la marca de CustomMobs y aun no estaba registrada. */
     public void register(LivingEntity entity) {
+        if (!this.worldEnabled(entity.getWorld())) {
+            // Mundo fuera de la lista: el mob no se gestiona, asi que no cuenta cupo ni IA.
+            return;
+        }
         UUID entityId = entity.getUniqueId();
         if (this.active.containsKey(entityId)) {
             return;
         }
         this.read(entity).ifPresent(customMob -> {
             this.active.put(entityId, customMob);
-            // Recupera el cupo si el archivo se perdio: es idempotente, repetirlo no suma dos veces.
+            // Reengancha el vinculo: la entidad trae su id en el PDC, asi que aunque el
+            // registro se hubiera perdido, aqui se vuelve a saber a quien pertenece.
             if (customMob.ownerId() != null) {
-                this.playerMobs.add(customMob.ownerId(), entityId);
+                UUID linkId = parseUuid(entity.getPersistentDataContainer()
+                        .get(this.keys.link(), PersistentDataType.STRING));
+                if (linkId == null) {
+                    linkId = UUID.randomUUID();
+                    entity.getPersistentDataContainer()
+                            .set(this.keys.link(), PersistentDataType.STRING, linkId.toString());
+                }
+                this.playerMobs.ensure(linkId, customMob.ownerId(), customMob.definition().id(), entityId);
             }
             // La definicion manda: reafirmamos el nombre al cargar. Un mob guardado con el
             // nombre que le impuso otro plugin lo conservaria para siempre si no. Encima va
@@ -545,7 +618,10 @@ public final class MobService implements Listener {
         }
 
         if (!anchor.getWorld().getName().equals(mob.getWorld().getName())) {
-            if (leash.teleportDistance() > 0.0D) {
+            // Solo sigue a su dueno a un mundo habilitado. A uno excluido no puede ir, y
+            // forzarlo lo sacaria de la gestion del plugin: se deja donde esta y el
+            // servicio de abandono decide su suerte.
+            if (leash.teleportDistance() > 0.0D && this.worldEnabled(anchor.getWorld())) {
                 mob.teleport(anchor);
             }
             return;
@@ -577,7 +653,33 @@ public final class MobService implements Listener {
         if (this.styles != null) {
             this.styles.clear(event.getEntity());
         }
-        this.playerMobs.remove(event.getEntity().getUniqueId());
+        // El mob murio: se borra su vinculo, asi que el huevo que lo llevaba queda inerte.
+        this.playerMobs.byEntity(event.getEntity().getUniqueId())
+                .ifPresent(link -> this.playerMobs.removeLink(link.linkId()));
+    }
+
+    /**
+     * Guarda el mob de ese vinculo: sale del mundo y queda dentro de su huevo.
+     *
+     * <p>El vinculo NO se borra —eso es lo que lo distingue de {@link #despawn}—, asi que
+     * el huevo sigue sirviendo para volver a desplegarlo.
+     */
+    public boolean store(UUID linkId) {
+        PlayerMobRegistry.MobLink link = this.playerMobs.byLink(linkId).orElse(null);
+        if (link == null || !link.deployed()) {
+            return false;
+        }
+        CustomMob customMob = this.active.get(link.entityId());
+        if (customMob != null) {
+            if (this.styles != null) {
+                this.styles.clear(customMob.entity());
+            }
+            this.active.remove(link.entityId());
+            customMob.entity().remove();
+        }
+        this.playerMobs.store(linkId);
+        this.playerMobs.save();
+        return true;
     }
 
     /** Elimina un mob y, si era un spawner, deja de reanimarlo. */
@@ -585,7 +687,8 @@ public final class MobService implements Listener {
         if (this.styles != null) {
             this.styles.clear(customMob.entity());
         }
-        this.playerMobs.remove(customMob.entity().getUniqueId());
+        this.playerMobs.byEntity(customMob.entity().getUniqueId())
+                .ifPresent(link -> this.playerMobs.removeLink(link.linkId()));
         UUID spawnerId = this.spawnerIdOf(customMob.entity());
         if (spawnerId != null) {
             this.spawners.remove(spawnerId);
@@ -655,7 +758,7 @@ public final class MobService implements Listener {
             return false;
         }
         LivingEntity spawned = this.spawn(definition, new Location(world, entry.x(), entry.y(), entry.z()),
-                null, entry.id());
+                null, entry.id(), null);
         if (spawned != null) {
             this.spawners.put(entry.alive());
             this.spawners.save();

@@ -18,7 +18,6 @@ import java.util.Map;
  * @param debug               log extra
  * @param targetRadius        radio de busqueda de objetivos
  * @param taskIntervalTicks   intervalo del task de objetivos
- * @param consumeEgg          si el huevo se consume al invocar
  * @param playerTargetMode    politica por defecto contra jugadores
  * @param aggroDurationMillis cuanto dura la hostilidad ganada por agresion
  * @param aggroWatchRadius    radio en el que se vigilan agresiones al bando
@@ -30,12 +29,16 @@ import java.util.Map;
  * @param groupLimits         cupo por grupo de LuckPerms, con las claves en minusculas
  * @param motdEnabled         si el MOTD se manda al entrar
  * @param motd                lineas del MOTD, ya con los codigos de color traducidos
+ * @param enabledWorlds       mundos donde funciona el plugin, en minusculas; vacio = todos
+ * @param recallEnabled       si los mobs abandonados se retiran solos
+ * @param recallRadius        radio de abandono; {@code 0} = derivado de la simulation-distance
+ * @param recallMobSeconds    segundos antes de destruir el mob abandonado
+ * @param recallChunkSeconds  segundos antes de liberar el chunk que se mantuvo cargado
  */
 public record PluginConfig(
         boolean debug,
         double targetRadius,
         long taskIntervalTicks,
-        boolean consumeEgg,
         PlayerTargetMode playerTargetMode,
         long aggroDurationMillis,
         double aggroWatchRadius,
@@ -46,7 +49,12 @@ public record PluginConfig(
         int defaultPlayerMobs,
         Map<String, Integer> groupLimits,
         boolean motdEnabled,
-        List<String> motd
+        List<String> motd,
+        List<String> enabledWorlds,
+        boolean recallEnabled,
+        double recallRadius,
+        long recallMobSeconds,
+        long recallChunkSeconds
 ) {
 
     public static PluginConfig load(FileConfiguration cfg) {
@@ -54,11 +62,14 @@ public record PluginConfig(
         if (mode == null) {
             mode = PlayerTargetMode.DEFENSIVE;
         }
+        // La chunk tiene que sobrevivir al mob: si se pidiera soltar antes de destruirlo,
+        // nadie podria tocarlo. Por eso el suelo de chunk-seconds es mob-seconds.
+        long mobSeconds = Math.max(1L, cfg.getLong("recall.mob-seconds", 60L));
+        long chunkSeconds = Math.max(mobSeconds, cfg.getLong("recall.chunk-seconds", 120L));
         return new PluginConfig(
                 cfg.getBoolean("debug", false),
                 Math.max(1.0D, cfg.getDouble("targeting.radius", 16.0D)),
                 Math.max(1L, cfg.getLong("targeting.interval-ticks", 20L)),
-                cfg.getBoolean("craft.consume-egg", true),
                 mode,
                 Math.max(1L, cfg.getLong("targeting.aggro-duration-seconds", 120L)) * 1000L,
                 Math.max(1.0D, cfg.getDouble("targeting.aggro-watch-radius", 24.0D)),
@@ -71,8 +82,23 @@ public record PluginConfig(
                 Math.max(0, cfg.getInt("limits.default-player-mobs", 3)),
                 readGroupLimits(cfg),
                 cfg.getBoolean("branding.motd-enabled", true),
-                motdOf(cfg)
+                motdOf(cfg),
+                lowerList(cfg.getStringList("worlds.enabled")),
+                cfg.getBoolean("recall.enabled", true),
+                Math.max(0.0D, cfg.getDouble("recall.radius", 0.0D)),
+                mobSeconds,
+                chunkSeconds
         );
+    }
+
+    private static List<String> lowerList(List<String> raw) {
+        List<String> values = new ArrayList<>(raw.size());
+        for (String value : raw) {
+            if (value != null && !value.isBlank()) {
+                values.add(value.toLowerCase(java.util.Locale.ROOT).trim());
+            }
+        }
+        return List.copyOf(values);
     }
 
     /**

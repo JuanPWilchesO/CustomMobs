@@ -13,6 +13,7 @@ import com.juanp.custommobs.craft.CraftService;
 import com.juanp.custommobs.craft.EggListener;
 import com.juanp.custommobs.disguise.DisguiseLink;
 import com.juanp.custommobs.disguise.DisguiseLinkResolver;
+import com.juanp.custommobs.docs.DocsInstaller;
 import com.juanp.custommobs.drop.DropListener;
 import com.juanp.custommobs.drop.DropService;
 import com.juanp.custommobs.faction.FactionBook;
@@ -25,6 +26,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
+import com.juanp.custommobs.recall.RecallService;
 import com.juanp.custommobs.skill.SkillService;
 import com.juanp.custommobs.spawner.SpawnerListener;
 import com.juanp.custommobs.spawner.SpawnerRegistry;
@@ -75,12 +77,21 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private AmbientTask ambientTask;
     private SkillService skillService;
     private TargetingTask targetingTask;
+    private RecallService recallService;
     private CustomMobsApiImpl api;
 
     @Override
     public void onEnable() {
         this.saveDefaultConfig();
         this.config = PluginConfig.load(this.getConfig());
+
+        // La documentacion y los tutoriales viajan dentro del jar; se dejan tambien en
+        // disco para que un admin pueda leerlos sin descomprimir nada.
+        int docs = new DocsInstaller(this).install();
+        if (docs > 0) {
+            this.getLogger().info("Documentacion y tutoriales instalados: " + docs
+                    + " archivo(s) en docs/ y tutorials/.");
+        }
 
         // La firma va lo primero que escribe el plugin, para que se vea al arrancar.
         this.getComponentLogger().info(SIGNATURE);
@@ -139,6 +150,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
         long interval = this.config.taskIntervalTicks();
         this.targetingTask.runTaskTimer(this, interval, interval);
 
+        // La ventana de abandono vigila cada segundo: es la que decide cuando un mob
+        // anclado a su dueno ha quedado atras y hay que retirarlo.
+        this.recallService = new RecallService(this, this.mobService, this.config);
+        this.recallService.runTaskTimer(this, 20L, 20L);
+
         this.ambientTask = new AmbientTask(this.soundService);
         this.ambientTask.runTaskTimer(this, 20L, 20L);
 
@@ -158,6 +174,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
                 + " | aggro: " + (this.config.aggroDurationMillis() / 1000L) + "s"
                 + " | skills cada " + skillInterval + "t"
                 + " | grupos: " + this.groupLink.name()
+                + " | abandono: " + (this.config.recallEnabled()
+                        ? this.config.recallMobSeconds() + "s/" + this.config.recallChunkSeconds() + "s"
+                        : "off")
                 + " | cupo por defecto: " + (this.config.defaultPlayerMobs() > 0
                         ? String.valueOf(this.config.defaultPlayerMobs()) : "sin limite"));
     }
@@ -172,6 +191,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
         }
         if (this.targetingTask != null) {
             this.targetingTask.cancel();
+        }
+        if (this.recallService != null) {
+            this.recallService.cancel();
+            // Suelta los tickets de chunk antes de que el mundo se guarde.
+            this.recallService.shutdown();
         }
         if (this.ambientTask != null) {
             this.ambientTask.cancel();

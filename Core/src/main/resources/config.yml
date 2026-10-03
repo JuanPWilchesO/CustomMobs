@@ -47,9 +47,7 @@ targeting:
   # Si tambien reacciona cuando el agredido es un mob del mismo bando.
   aggro-on-friendly-mobs: true
 
-craft:
-  # Si el huevo custom se consume al invocar el mob.
-  consume-egg: true
+# El huevo NO se consume: es la ficha del mob, sirve para recogerlo y re-colocarlo.
 
 skills:
   # Cada cuantos ticks se evaluan las skills de cada mob (20 ticks = 1 segundo).
@@ -72,3 +70,23 @@ limits:
     default: 3
     vip: 5
     staff: 10
+
+worlds:
+  # Mundos donde funciona el plugin. Vacio = todos.
+  # Los nombres son los de Bukkit, asi que sirve cualquiera, incluidos los de
+  # Multiverse-Core (mira el nombre exacto con /mv list).
+  enabled: []
+
+recall:
+  # Ventana de abandono: que pasa cuando dejas atras un mob anclado a ti.
+  # Si el mob no puede volver a tu lado (estas en otro mundo no habilitado, o
+  # demasiado lejos), se le da un plazo antes de retirarlo.
+  enabled: true
+  # Radio en bloques a partir del cual el mob cuenta como abandonado.
+  # 0 = derivado de la simulation-distance del mundo (recomendado).
+  radius: 0.0
+  # Segundos que se espera antes de destruir el mob abandonado.
+  mob-seconds: 60
+  # Segundos que se mantiene cargado su chunk antes de soltarlo.
+  # Nunca puede ser menor que mob-seconds.
+  chunk-seconds: 120

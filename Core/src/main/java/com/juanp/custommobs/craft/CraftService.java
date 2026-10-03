@@ -17,6 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Registra las recetas de los huevos custom y los construye.
@@ -113,6 +114,42 @@ public final class CraftService {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    /**
+     * Id de vinculo de un huevo, si ya quedo ligado a un mob.
+     *
+     * <p>Un huevo recien crafteado no lo tiene: se liga al colocar el mob por primera vez.
+     * Desde entonces lo representa, sirve para recogerlo y vuelve a desplegarlo.
+     */
+    public Optional<UUID> linkOf(ItemStack item) {
+        if (item == null || item.getType().isAir() || !item.hasItemMeta()) {
+            return Optional.empty();
+        }
+        String raw = item.getItemMeta().getPersistentDataContainer()
+                .get(this.keys.link(), PersistentDataType.STRING);
+        if (raw == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(UUID.fromString(raw));
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
+        }
+    }
+
+    /** Liga el huevo a un mob: desde aqui lo representa. */
+    public boolean bind(ItemStack item, UUID linkId) {
+        if (item == null || item.getType().isAir() || linkId == null) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        meta.getPersistentDataContainer().set(this.keys.link(), PersistentDataType.STRING, linkId.toString());
+        item.setItemMeta(meta);
+        return true;
     }
 
     /** Definicion a la que pertenece un item, si es un huevo custom. */

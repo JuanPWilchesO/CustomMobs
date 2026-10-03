@@ -1,41 +1,80 @@
 package com.juanp.custommobs.mob;
 
 import com.juanp.custommobs.CustomMobsPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * Cupo de mobs de jugador: cuantos tiene vivo cada jugador.
+ * Vinculos entre un jugador, sus mobs y los huevos que los representan.
  *
- * <p>Se lleva en disco a proposito. Un mob de jugador anclado a un bloque fijo
- * ({@code anchor: point} en su yml) puede quedarse en un chunk descargado, y ahi no hay
- * API que permita enumerarlo: si contaramos solo los cargados, el jugador podria
- * desplegar una tropa en bloques repartidos y saltarse el tope.
+ * <p>Un <b>vinculo</b> tiene un id estable —el que llevan el huevo y la entidad— y dos
+ * estados:
  *
- * <p>El cupo sube al invocar y baja al morir o al retirar el mob. Es tolerante a fallos:
- * si un mob desaparece sin avisar (un plugin externo, un corte), la cuenta se corrige
- * con {@code /custommobs cuota liberar <jugador>}.
+ * <ul>
+ *   <li><b>Desplegado</b>: el mob esta en el mundo. {@code entity} apunta a el.</li>
+ *   <li><b>Guardado</b>: el mob no esta en el mundo; el huevo lo conserva y puede
+ *       volver a colocarlo. {@code entity} es {@code null}.</li>
+ * </ul>
+ *
+ * <p>Cuando el mob muere (o se destruye por abandono), el vinculo <b>se borra</b>: el huevo
+ * queda apuntando a la nada y por tanto inutil, sin necesidad de ir a buscarlo por el mundo.
+ *
+ * <p>Vive en disco porque un mob guardado no tiene entidad que consultar, y porque un mob
+ * desplegado puede estar en una chunk descargada, donde no hay API que lo enumere.
  */
 public final class PlayerMobRegistry {
+
+    /**
+     * Un vinculo: a quien pertenece, que mob es, si esta desplegado y donde se le vio.
+     *
+     * <p>La posicion se guarda a proposito: cuando el mob queda en una chunk descargada
+     * no hay entidad que consultar, y sin saber donde estaba no se puede decidir si su
+     * dueno lo abandono.
+     */
+    public record MobLink(UUID linkId, UUID owner, String definitionId, UUID entityId,
+                          String world, double x, double y, double z) {
+
+        public boolean deployed() {
+            return this.entityId != null;
+        }
+
+        /** Ultima posicion conocida, o {@code null} si nunca se le vio. */
+        public Location location() {
+            World target = this.world == null ? null : Bukkit.getWorld(this.world);
+            return target == null ? null : new Location(target, this.x, this.y, this.z);
+        }
+
+        public MobLink withEntity(UUID entity) {
+            return new MobLink(this.linkId, this.owner, this.definitionId, entity,
+                    this.world, this.x, this.y, this.z);
+        }
+
+        public MobLink moved(String world, double x, double y, double z) {
+            return new MobLink(this.linkId, this.owner, this.definitionId, this.entityId,
+                    world, x, y, z);
+        }
+    }
 
     private final CustomMobsPlugin plugin;
     private final File file;
 
-    /** Jugador -> mobs suyos. */
-    private final Map<UUID, Set<UUID>> byOwner = new HashMap<>();
-    /** Mob -> jugador, para poder restar por id de entidad. */
-    private final Map<UUID, UUID> ownerOf = new HashMap<>();
-
+    private final Map<UUID, MobLink> byLink = new LinkedHashMap<>();
+    /** Indice entidad -> vinculo, para resolver desde el mob. */
+    private final Map<UUID, UUID> linkOfEntity = new HashMap<>();
     private boolean dirty;
 
     public PlayerMobRegistry(CustomMobsPlugin plugin) {
@@ -44,116 +83,198 @@ public final class PlayerMobRegistry {
     }
 
     public void load() {
-        this.byOwner.clear();
-        this.ownerOf.clear();
+        this.byLink.clear();
+        this.linkOfEntity.clear();
         if (!this.file.exists()) {
-            this.plugin.getLogger().info("Cupo de mobs: sin registro previo, se empieza de cero.");
             return;
         }
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(this.file);
-        ConfigurationSection players = yaml.getConfigurationSection("players");
-        if (players == null) {
+        ConfigurationSection links = yaml.getConfigurationSection("links");
+        if (links == null) {
             return;
         }
-        for (String rawOwner : players.getKeys(false)) {
-            UUID ownerId = parse(rawOwner);
-            if (ownerId == null) {
+        for (String key : links.getKeys(false)) {
+            UUID linkId = parse(key);
+            if (linkId == null) {
                 continue;
             }
-            Set<UUID> mobs = new HashSet<>();
-            for (String rawMob : players.getStringList(rawOwner)) {
-                UUID mobId = parse(rawMob);
-                if (mobId != null && mobs.add(mobId)) {
-                    this.ownerOf.put(mobId, ownerId);
-                }
+            UUID owner = parse(links.getString(key + ".owner"));
+            String definition = links.getString(key + ".definition");
+            if (owner == null || definition == null) {
+                continue;
             }
-            if (!mobs.isEmpty()) {
-                this.byOwner.put(ownerId, mobs);
+            UUID entity = parse(links.getString(key + ".entity"));
+            MobLink link = new MobLink(linkId, owner, definition, entity,
+                    links.getString(key + ".world"),
+                    links.getDouble(key + ".x"), links.getDouble(key + ".y"), links.getDouble(key + ".z"));
+            this.byLink.put(linkId, link);
+            if (entity != null) {
+                this.linkOfEntity.put(entity, linkId);
             }
         }
-        this.plugin.getLogger().info("Cupo de mobs cargado: " + this.ownerOf.size()
-                + " mobs repartidos entre " + this.byOwner.size() + " jugadores.");
+        if (!this.byLink.isEmpty()) {
+            this.plugin.getLogger().info("Vinculos de mobs cargados: " + this.byLink.size()
+                    + " (" + this.deployedTotal() + " desplegados).");
+        }
     }
 
     public void save() {
         YamlConfiguration yaml = new YamlConfiguration();
-        for (Map.Entry<UUID, Set<UUID>> entry : this.byOwner.entrySet()) {
-            if (entry.getValue().isEmpty()) {
-                continue;
+        for (MobLink link : this.byLink.values()) {
+            String base = "links." + link.linkId() + ".";
+            yaml.set(base + "owner", link.owner().toString());
+            yaml.set(base + "definition", link.definitionId());
+            if (link.entityId() != null) {
+                yaml.set(base + "entity", link.entityId().toString());
             }
-            List<String> ids = new ArrayList<>(entry.getValue().size());
-            for (UUID mobId : entry.getValue()) {
-                ids.add(mobId.toString());
+            if (link.world() != null) {
+                yaml.set(base + "world", link.world());
+                yaml.set(base + "x", link.x());
+                yaml.set(base + "y", link.y());
+                yaml.set(base + "z", link.z());
             }
-            yaml.set("players." + entry.getKey(), ids);
         }
         try {
             yaml.save(this.file);
             this.dirty = false;
         } catch (IOException ex) {
-            this.plugin.getLogger().warning("No se pudo guardar el cupo de mobs: " + ex.getMessage());
+            this.plugin.getLogger().warning("No se pudieron guardar los vinculos de mobs: " + ex.getMessage());
         }
     }
 
-    /** Suma un mob al cupo de su dueno. Repetirlo no lo cuenta dos veces. */
-    public void add(UUID ownerId, UUID mobId) {
-        if (ownerId == null || mobId == null) {
-            return;
-        }
-        UUID previous = this.ownerOf.put(mobId, ownerId);
-        if (previous != null && !previous.equals(ownerId)) {
-            Set<UUID> old = this.byOwner.get(previous);
-            if (old != null) {
-                old.remove(mobId);
-            }
-        }
-        if (previous == null || !previous.equals(ownerId)) {
-            this.byOwner.computeIfAbsent(ownerId, id -> new HashSet<>()).add(mobId);
-            this.dirty = true;
-        }
+    /** Crea un vinculo nuevo, sin entidad todavia. */
+    public MobLink create(UUID owner, String definitionId) {
+        MobLink link = new MobLink(UUID.randomUUID(), owner, definitionId, null, null, 0, 0, 0);
+        this.byLink.put(link.linkId(), link);
+        this.dirty = true;
+        return link;
     }
 
-    /** Resta un mob por su id de entidad. */
-    public void remove(UUID mobId) {
-        UUID ownerId = this.ownerOf.remove(mobId);
-        if (ownerId == null) {
+    /**
+     * Da de alta un vinculo con un id concreto, o lo actualiza si ya existe.
+     *
+     * <p>Sirve para recuperarse al cargar una entidad de disco: el mob trae su id de
+     * vinculo en el PDC, y con esto el registro vuelve a saber de quien es aunque el
+     * archivo se hubiera perdido.
+     */
+    public MobLink ensure(UUID linkId, UUID owner, String definitionId, UUID entityId) {
+        MobLink existing = this.byLink.get(linkId);
+        MobLink link = existing != null
+                ? existing.withEntity(entityId)
+                : new MobLink(linkId, owner, definitionId, entityId, null, 0, 0, 0);
+        this.byLink.put(linkId, link);
+        if (entityId != null) {
+            this.linkOfEntity.put(entityId, linkId);
+        }
+        this.dirty = true;
+        return link;
+    }
+
+    /** Marca el vinculo como desplegado sobre esa entidad. */
+    public void deploy(UUID linkId, UUID entityId) {
+        MobLink link = this.byLink.get(linkId);
+        if (link == null) {
             return;
         }
-        Set<UUID> mobs = this.byOwner.get(ownerId);
-        if (mobs != null) {
-            mobs.remove(mobId);
-            if (mobs.isEmpty()) {
-                this.byOwner.remove(ownerId);
-            }
+        if (link.entityId() != null) {
+            this.linkOfEntity.remove(link.entityId());
+        }
+        this.byLink.put(linkId, link.withEntity(entityId));
+        this.linkOfEntity.put(entityId, linkId);
+        this.dirty = true;
+    }
+
+    /** Apunta donde se le vio por ultima vez: hace falta cuando su chunk se descarga. */
+    public void move(UUID linkId, Location location) {
+        MobLink link = this.byLink.get(linkId);
+        if (link == null || location == null || location.getWorld() == null) {
+            return;
+        }
+        this.byLink.put(linkId, link.moved(location.getWorld().getName(),
+                location.getX(), location.getY(), location.getZ()));
+        this.dirty = true;
+    }
+
+    /** Marca el vinculo como guardado: el mob ya no esta en el mundo. */
+    public void store(UUID linkId) {
+        MobLink link = this.byLink.get(linkId);
+        if (link == null || link.entityId() == null) {
+            return;
+        }
+        this.linkOfEntity.remove(link.entityId());
+        this.byLink.put(linkId, link.withEntity(null));
+        this.dirty = true;
+    }
+
+    /** Borra el vinculo. El huevo que lo lleve queda inutil para siempre. */
+    public void removeLink(UUID linkId) {
+        MobLink link = this.byLink.remove(linkId);
+        if (link == null) {
+            return;
+        }
+        if (link.entityId() != null) {
+            this.linkOfEntity.remove(link.entityId());
         }
         this.dirty = true;
     }
 
-    public int count(UUID ownerId) {
-        Set<UUID> mobs = this.byOwner.get(ownerId);
-        return mobs == null ? 0 : mobs.size();
+    public Optional<MobLink> byLink(UUID linkId) {
+        return Optional.ofNullable(this.byLink.get(linkId));
+    }
+
+    /** Vinculo al que pertenece esa entidad, si es un mob nuestro. */
+    public Optional<MobLink> byEntity(UUID entityId) {
+        UUID linkId = this.linkOfEntity.get(entityId);
+        return linkId == null ? Optional.empty() : Optional.ofNullable(this.byLink.get(linkId));
+    }
+
+    /** Mobs del jugador que estan ahora mismo en el mundo: lo que ocupa cupo. */
+    public int deployedCount(UUID owner) {
+        int count = 0;
+        for (MobLink link : this.byLink.values()) {
+            if (owner != null && owner.equals(link.owner()) && link.deployed()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** Todos los vinculos de ese jugador, desplegados o guardados. */
+    public Set<UUID> linksOf(UUID owner) {
+        Set<UUID> found = new HashSet<>();
+        for (MobLink link : this.byLink.values()) {
+            if (owner != null && owner.equals(link.owner())) {
+                found.add(link.linkId());
+            }
+        }
+        return Set.copyOf(found);
+    }
+
+    /** Borra todos los vinculos del jugador. Devuelve cuantos eran. */
+    public int resetOwner(UUID owner) {
+        Set<UUID> links = this.linksOf(owner);
+        for (UUID linkId : links) {
+            this.removeLink(linkId);
+        }
+        return links.size();
     }
 
     public int total() {
-        return this.ownerOf.size();
+        return this.byLink.size();
     }
 
-    public Set<UUID> mobsOf(UUID ownerId) {
-        Set<UUID> mobs = this.byOwner.get(ownerId);
-        return mobs == null ? Set.of() : Set.copyOf(mobs);
+    public int deployedTotal() {
+        int count = 0;
+        for (MobLink link : this.byLink.values()) {
+            if (link.deployed()) {
+                count++;
+            }
+        }
+        return count;
     }
 
-    /** Borra el cupo de un jugador. Sirve para corregir cuentas desincronizadas. */
-    public int reset(UUID ownerId) {
-        Set<UUID> mobs = this.byOwner.remove(ownerId);
-        if (mobs == null) {
-            return 0;
-        }
-        for (UUID mobId : mobs) {
-            this.ownerOf.remove(mobId);
-        }
-        this.dirty = true;
-        return mobs.size();
+    public List<MobLink> all() {
+        return List.copyOf(this.byLink.values());
     }
 
     public boolean isDirty() {
@@ -161,6 +282,9 @@ public final class PlayerMobRegistry {
     }
 
     private static UUID parse(String raw) {
+        if (raw == null) {
+            return null;
+        }
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException ex) {

@@ -1,0 +1,69 @@
+# Comandos, permisos y cupos
+
+Todos bajo `/custommobs` (alias `cmobs`, `cm`).
+
+| Comando | Que hace |
+|---|---|
+| `reload` | recarga mobs, config y facciones sin reiniciar |
+| `list` | lista las definiciones cargadas |
+| `give <id> [jugador]` | entrega el huevo de ese mob |
+| `spawn <id> [mundo x y z]` | invoca el mob. Desde el juego, tu quedas como dueno |
+| `kill <id>` | mata todos los mobs de esa definicion |
+| `remove [radio]` | retira los mobs custom cercanos (solo desde el juego) |
+| `active` | lista los mobs vivos, con dueno y ubicacion |
+| `enchants [filtro]` | lista encantamientos disponibles (util para validar ids) |
+| `cuota [jugador]` | consulta el cupo de mobs |
+| `cuota recontar <jugador>` | rehace la cuenta **sin tocar mobs** |
+| `cuota retirar <jugador>` | retira sus mobs y deja el cupo en cero (**destructivo**) |
+| `item save <nombre>` | guarda el objeto de tu mano en el catalogo, con su NBT |
+| `item list` | lista los objetos guardados |
+| `item remove <nombre>` | borra uno del catalogo |
+| `color <color\|nada>` | color del nombre de tus player mobs |
+| `glow <color\|nada>` | brillo de tus player mobs |
+
+Desde consola, `spawn` pide mundo y coordenadas: `/custommobs spawn <id> <mundo> <x> <y> <z>`.
+
+**`recontar` vs `retirar`** — la diferencia es importante:
+
+- `recontar`: no mata nada. Deja en la cuenta solo los mobs que se ven ahora. Una entrada
+  de un mob que ya no existe desaparece y no vuelve; la de un mob real que esta en un chunk
+  descargado **volvera a contar** cuando su chunk cargue. Sirve para corregir cuentas infladas.
+- `retirar`: **mata** los mobs que alcanza y deja el cupo en cero. Los que estan anclados en
+  chunks descargados no se pueden tocar hasta que carguen.
+
+## Permisos
+
+| Permiso | Para que | Por defecto |
+|---|---|---|
+| `custommobs.player` | invocar mobs con los huevos | `true` |
+| `custommobs.admin` | comandos de administracion | `op` |
+
+El unico comando que un jugador raso puede usar por su cuenta es `cuota` sin argumentos,
+para ver **su propio** cupo.
+
+> **Ojo con `default: false`**: a diferencia de `op`, **ignora** el flag de operador. Si lo
+> cambias, ni tu (siendo op) podreis invocar hasta que se os conceda el permiso.
+
+Los permisos van por el sistema **nativo de Bukkit**, asi que sirve cualquier plugin de
+permisos, no solo LuckPerms.
+
+## Cupo de mobs por grupo
+
+En `config.yml`:
+
+```yaml
+limits:
+  default-player-mobs: 3
+  groups:
+    default: 3
+    vip: 5
+    staff: 10
+```
+
+- El grupo se lee de **LuckPerms en el momento de invocar**, no al conectarse: un cambio de
+  rango aplica al instante.
+- Si el jugador pertenece a **varios grupos, gana el cupo mas alto**.
+- Si su grupo no esta mapeado, o no se pudieron leer sus grupos, se usa
+  `default-player-mobs`. `0` = sin limite.
+- Sin LuckPerms instalado, todos caen al grupo `default`.
+- Cambiar `limits` aplica con `/custommobs reload`, **sin reiniciar**.

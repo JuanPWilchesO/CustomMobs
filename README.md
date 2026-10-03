@@ -591,3 +591,13 @@ muerte ni retirada (un plugin externo, un corte), la cuenta queda alta:
 
 **Cambie los permisos por defecto y no aplican.**
 `plugin.yml` solo se lee al arrancar. Requiere reinicio del servidor.
+
+---
+
+## Licencia
+
+GNU General Public License v3.0. Mira `LICENSE`.
+
+Es software libre: puedes usarlo, estudiarlo, modificarlo y redistribuirlo. Si
+redistribuyes una version modificada, tiene que seguir siendo libre. Nada de cerrarlo y
+venderlo como caja negra.

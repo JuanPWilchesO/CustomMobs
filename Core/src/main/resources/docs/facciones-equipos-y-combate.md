@@ -1,0 +1,85 @@
+# Facciones, equipos y combate
+
+## A quien ataca un mob
+
+Depende de su categoria:
+
+- **Mob de jugador** (`category: player`): nunca ataca a su dueno ni a si mismo. Ataca a
+  los monstruos vanilla, a los mobs custom cuyo team sea enemigo del suyo, y a jugadores
+  solo segun `targets.players` (o el modo del config). **Sin team, nunca ataca jugadores.**
+- **Mob de servidor** (`category: server`): ataca solo a mobs de facciones enemigas. Los
+  de su bando o aliadas son intocables. Contra jugadores manda `attitude` (`hostile`,
+  `neutral`, `defender`).
+
+## Proteccion
+
+Un mob defiende al dueno, a los companeros de team, a los aliados y a los mobs de su
+bando; sin team, solo a su dueno. **La defensa propia siempre vale.** Los aliados son
+intocables aunque hayan agredido antes.
+
+## Facciones (`factions.yml`)
+
+Solo para mobs `category: server`:
+
+```yaml
+orcos:
+  allies: [goblins]
+  enemies: [humanos, enanos]
+```
+
+- Las relaciones son **simetricas**: si `orcos` declara `humanos` enemigo, la enemistad
+  vale al reves.
+- Lo que no se declara es **neutral**. Dos facciones neutrales solo se atacan si una
+  agrede a la otra.
+
+## Actitud frente a jugadores
+
+| `attitude` | Comportamiento |
+|---|---|
+| `hostile` | ataca jugadores a la vista |
+| `neutral` | no ataca salvo que lo agredan |
+| `defender` | nunca ataca jugadores; persigue a los monstruos que los amenazan |
+
+## Modos contra jugadores (mobs de jugador)
+
+```yaml
+targets:
+  players: defensive
+```
+
+| Modo | Contra jugadores |
+|---|---|
+| `never` | nunca |
+| `enemies` | solo si Teams los marca enemigos |
+| `non-allies` | todo jugador que no sea de su team ni aliado |
+| `defensive` | neutral hasta que agredan a su bando |
+
+Sin el campo, se hereda `targeting.player-mode` del config.
+
+## Venganza (aggro)
+
+Cuando un jugador agrede al **bando protegido** de un mob —su dueno, un companero, un
+aliado o un mob del mismo lado— los mobs de ese bando dentro de `aggro-watch-radius` lo
+marcan como hostil durante `aggro-duration-seconds`, **sin importar el modo de
+objetivos**. La IA y las skills reaccionan igual, porque consultan el mismo registro.
+
+Config:
+
+```yaml
+targeting:
+  aggro-duration-seconds: 120
+  aggro-watch-radius: 24.0
+  aggro-on-friendly-mobs: true
+```
+
+## Teams (opcional)
+
+Con **Teams** instalado, los jugadores se agrupan en bandos:
+
+- Un mob protege a los companeros de team de su dueno.
+- `targets.players: enemies` usa los enemigos que declare Teams.
+- El **color y el brillo** de los player mobs se ajustan **por team**: lo decide el jefe
+  y aplica a los mobs de todos los miembros. Sin Teams, cada jugador manda sobre los suyos.
+
+Sin Teams instalado, cada jugador solo se protege a si mismo y `enemies` equivale a
+`never`.

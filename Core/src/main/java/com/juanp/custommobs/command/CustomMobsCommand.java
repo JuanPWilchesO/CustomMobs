@@ -27,6 +27,13 @@ import java.util.UUID;
 /** /custommobs reload | list | give | enchants */
 public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
 
+    /**
+     * Etiqueta de los mensajes en el chat: negra y roja, en linea con el MOTD.
+     *
+     * <p>Aqui si vale el '&'/'\u00a7': los mensajes de chat los renderiza el cliente.
+     */
+    private static final String TAG = com.juanp.custommobs.mob.Texts.color("&0[&cCustomMobs&0]");
+
     private final CustomMobsPlugin plugin;
 
     public CustomMobsCommand(CustomMobsPlugin plugin) {
@@ -41,7 +48,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         String needed = ownQuota ? this.plugin.config().playerPermission()
                 : this.plugin.config().adminPermission();
         if (!sender.hasPermission(needed)) {
-            sender.sendMessage("[CustomMobs] No tienes permiso (" + needed + ").");
+            sender.sendMessage(TAG + " No tienes permiso (" + needed + ").");
             return true;
         }
         if (args.length == 0) {
@@ -52,10 +59,10 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> {
                 this.plugin.reloadAll();
-                sender.sendMessage("[CustomMobs] Recargado. Definiciones: " + this.plugin.registry().size());
+                sender.sendMessage(TAG + " Recargado. Definiciones: " + this.plugin.registry().size());
             }
             case "list" -> {
-                sender.sendMessage("[CustomMobs] Definiciones (" + this.plugin.registry().size() + "):");
+                sender.sendMessage(TAG + " Definiciones (" + this.plugin.registry().size() + "):");
                 for (MobDefinition definition : this.plugin.registry().all()) {
                     sender.sendMessage(" - " + definition.id() + " (" + definition.entityType().name()
                             + ", " + definition.category().name().toLowerCase(Locale.ROOT) + ")");
@@ -78,12 +85,12 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
 
     private void give(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("[CustomMobs] Uso: /" + "custommobs give <id> [jugador]");
+            sender.sendMessage(TAG + " Uso: /" + "custommobs give <id> [jugador]");
             return;
         }
         MobDefinition definition = this.plugin.registry().get(args[1]).orElse(null);
         if (definition == null) {
-            sender.sendMessage("[CustomMobs] No existe la definicion '" + args[1] + "'.");
+            sender.sendMessage(TAG + " No existe la definicion '" + args[1] + "'.");
             return;
         }
 
@@ -96,27 +103,27 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             target = null;
         }
         if (target == null) {
-            sender.sendMessage("[CustomMobs] Jugador no encontrado.");
+            sender.sendMessage(TAG + " Jugador no encontrado.");
             return;
         }
 
         ItemStack egg = this.plugin.craft().createEgg(definition);
         if (egg == null) {
-            sender.sendMessage("[CustomMobs] '" + definition.id() + "' no define huevo; usa /custommobs spawn.");
+            sender.sendMessage(TAG + " '" + definition.id() + "' no define huevo; usa /custommobs spawn.");
             return;
         }
         target.getInventory().addItem(egg);
-        sender.sendMessage("[CustomMobs] Huevo '" + definition.id() + "' entregado a " + target.getName() + ".");
+        sender.sendMessage(TAG + " Huevo '" + definition.id() + "' entregado a " + target.getName() + ".");
     }
 
     private void spawn(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("[CustomMobs] Uso: /custommobs spawn <id> [mundo x y z]");
+            sender.sendMessage(TAG + " Uso: /custommobs spawn <id> [mundo x y z]");
             return;
         }
         MobDefinition definition = this.plugin.registry().get(args[1]).orElse(null);
         if (definition == null) {
-            sender.sendMessage("[CustomMobs] No existe la definicion '" + args[1] + "'.");
+            sender.sendMessage(TAG + " No existe la definicion '" + args[1] + "'.");
             return;
         }
 
@@ -124,30 +131,36 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 6) {
             World world = this.plugin.getServer().getWorld(args[2]);
             if (world == null) {
-                sender.sendMessage("[CustomMobs] Mundo no encontrado: " + args[2]);
+                sender.sendMessage(TAG + " Mundo no encontrado: " + args[2]);
                 return;
             }
             try {
                 location = new Location(world, Double.parseDouble(args[3]),
                         Double.parseDouble(args[4]), Double.parseDouble(args[5]));
             } catch (NumberFormatException ex) {
-                sender.sendMessage("[CustomMobs] Coordenadas invalidas.");
+                sender.sendMessage(TAG + " Coordenadas invalidas.");
                 return;
             }
         } else if (sender instanceof Player player) {
             location = player.getLocation();
         } else {
-            sender.sendMessage("[CustomMobs] Desde consola hace falta: /custommobs spawn <id> <mundo> <x> <y> <z>");
+            sender.sendMessage(TAG + " Desde consola hace falta: /custommobs spawn <id> <mundo> <x> <y> <z>");
+            return;
+        }
+
+        if (!this.plugin.mobs().worldEnabled(location.getWorld())) {
+            sender.sendMessage(TAG + " El plugin no funciona en el mundo "
+                    + location.getWorld().getName() + ".");
             return;
         }
 
         Player owner = sender instanceof Player player && !definition.server() ? player : null;
         LivingEntity spawned = this.plugin.mobs().spawn(definition, location, owner);
         if (spawned == null) {
-            sender.sendMessage("[CustomMobs] No se pudo invocar '" + definition.id() + "'.");
+            sender.sendMessage(TAG + " No se pudo invocar '" + definition.id() + "'.");
             return;
         }
-        sender.sendMessage("[CustomMobs] Invocado '" + definition.id() + "' (" + definition.category().name().toLowerCase(Locale.ROOT)
+        sender.sendMessage(TAG + " Invocado '" + definition.id() + "' (" + definition.category().name().toLowerCase(Locale.ROOT)
                 + ") en " + location.getWorld().getName() + " " + location.getBlockX() + " "
                 + location.getBlockY() + " " + location.getBlockZ() + ".");
     }
@@ -173,31 +186,31 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         if (libera || retira) {
             Player target = this.plugin.getServer().getPlayerExact(args[2]);
             if (target == null) {
-                sender.sendMessage("[CustomMobs] El jugador " + args[2] + " debe estar conectado para tocarle el cupo.");
+                sender.sendMessage(TAG + " El jugador " + args[2] + " debe estar conectado para tocarle el cupo.");
                 return;
             }
             if (libera) {
                 int ghosts = this.plugin.mobs().resyncPlayerMobs(target.getUniqueId());
                 int used = this.plugin.mobs().countPlayerMobs(target.getUniqueId());
                 int max = this.plugin.mobs().limitOf(target.getUniqueId());
-                sender.sendMessage("[CustomMobs] Cupo de " + target.getName() + " recontado: " + ghosts
+                sender.sendMessage(TAG + " Cupo de " + target.getName() + " recontado: " + ghosts
                         + " entradas fantasma descartadas. No se toco ningun mob.");
-                sender.sendMessage("[CustomMobs] Quedan " + used
+                sender.sendMessage(TAG + " Quedan " + used
                         + (max > 0 ? " de " + max + " mobs" : " mobs") + ".");
                 if (max > 0 && used >= max) {
-                    sender.sendMessage("[CustomMobs] Sigue en el tope: sus mobs existen, asi que no puede invocar mas.");
-                    sender.sendMessage("[CustomMobs] Para liberar cupo de verdad hay que retirarlos:"
+                    sender.sendMessage(TAG + " Sigue en el tope: sus mobs existen, asi que no puede invocar mas.");
+                    sender.sendMessage(TAG + " Para liberar cupo de verdad hay que retirarlos:"
                             + " /custommobs cuota retirar " + target.getName());
                 } else if (used > 0) {
-                    sender.sendMessage("[CustomMobs] Los anclados en chunks descargados volveran a contar cuando carguen.");
+                    sender.sendMessage(TAG + " Los anclados en chunks descargados volveran a contar cuando carguen.");
                 }
                 return;
             }
             var result = this.plugin.mobs().purgePlayerMobs(target.getUniqueId());
-            sender.sendMessage("[CustomMobs] Cupo de " + target.getName() + " a cero. Mobs retirados: "
+            sender.sendMessage(TAG + " Cupo de " + target.getName() + " a cero. Mobs retirados: "
                     + result.removed() + ".");
             if (result.unreachable() > 0) {
-                sender.sendMessage("[CustomMobs] " + result.unreachable()
+                sender.sendMessage(TAG + " " + result.unreachable()
                         + " siguen anclados en chunks descargados: no se pueden retirar hasta que carguen,"
                         + " y volveran a contar solos cuando eso pase.");
             }
@@ -209,7 +222,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         if (args.length >= 2) {
             Player target = this.plugin.getServer().getPlayerExact(args[1]);
             if (target == null) {
-                sender.sendMessage("[CustomMobs] Jugador no encontrado: " + args[1]);
+                sender.sendMessage(TAG + " Jugador no encontrado: " + args[1]);
                 return;
             }
             ownerId = target.getUniqueId();
@@ -218,15 +231,15 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             ownerId = player.getUniqueId();
             label = player.getName();
         } else {
-            sender.sendMessage("[CustomMobs] Uso: /custommobs cuota [jugador]");
-            sender.sendMessage("[CustomMobs]      /custommobs cuota recontar <jugador>  (solo rehace la cuenta, no toca mobs)");
-            sender.sendMessage("[CustomMobs]      /custommobs cuota retirar <jugador>  (mata sus mobs y deja el cupo en cero)");
+            sender.sendMessage(TAG + " Uso: /custommobs cuota [jugador]");
+            sender.sendMessage(TAG + "      /custommobs cuota recontar <jugador>  (solo rehace la cuenta, no toca mobs)");
+            sender.sendMessage(TAG + "      /custommobs cuota retirar <jugador>  (mata sus mobs y deja el cupo en cero)");
             return;
         }
 
         int max = this.plugin.mobs().limitOf(ownerId);
         int used = this.plugin.mobs().countPlayerMobs(ownerId);
-        sender.sendMessage("[CustomMobs] " + label + ": " + used
+        sender.sendMessage(TAG + " " + label + ": " + used
                 + (max > 0 ? " de " + max + " mobs" : " mobs (sin limite)"));
         int loaded = 0;
         for (CustomMob customMob : this.plugin.mobs().active()) {
@@ -240,7 +253,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
                     + location.getBlockY() + " " + location.getBlockZ());
         }
         if (used > loaded) {
-            sender.sendMessage("[CustomMobs] " + (used - loaded)
+            sender.sendMessage(TAG + " " + (used - loaded)
                     + " mas en chunks descargados (anclados a su bloque).");
         }
     }
@@ -253,7 +266,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
 
     private void active(CommandSender sender) {
         var mobs = this.plugin.mobs().active();
-        sender.sendMessage("[CustomMobs] Mobs activos: " + mobs.size());
+        sender.sendMessage(TAG + " Mobs activos: " + mobs.size());
         for (CustomMob customMob : mobs) {
             var entity = customMob.entity();
             var location = entity.getLocation();
@@ -274,7 +287,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
      */
     private void kill(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("[CustomMobs] Uso: /custommobs kill <id>");
+            sender.sendMessage(TAG + " Uso: /custommobs kill <id>");
             return;
         }
         String id = args[1].toLowerCase(Locale.ROOT);
@@ -286,13 +299,13 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             customMob.entity().setHealth(0.0D);
             killed++;
         }
-        sender.sendMessage("[CustomMobs] Eliminados " + killed + " mobs de '" + id + "'.");
+        sender.sendMessage(TAG + " Eliminados " + killed + " mobs de '" + id + "'.");
     }
 
     /** Borra los mobs custom cercanos al emisor. Util para desmontar escenas. */
     private void remove(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("[CustomMobs] 'remove' solo funciona desde el juego.");
+            sender.sendMessage(TAG + " 'remove' solo funciona desde el juego.");
             return;
         }
         double radius = 5.0D;
@@ -300,7 +313,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             try {
                 radius = Math.max(1.0D, Double.parseDouble(args[1]));
             } catch (NumberFormatException ex) {
-                sender.sendMessage("[CustomMobs] Radio invalido.");
+                sender.sendMessage(TAG + " Radio invalido.");
                 return;
             }
         }
@@ -317,7 +330,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             this.plugin.mobs().despawn(customMob);
             removed++;
         }
-        sender.sendMessage("[CustomMobs] Eliminados " + removed + " mobs custom en un radio de "
+        sender.sendMessage(TAG + " Eliminados " + removed + " mobs custom en un radio de "
                 + (int) radius + " bloques.");
     }
 
@@ -330,21 +343,21 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
      */
     private void setStyle(CommandSender sender, String[] args, String field) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("[CustomMobs] Este ajuste solo funciona desde el juego.");
+            sender.sendMessage(TAG + " Este ajuste solo funciona desde el juego.");
             return;
         }
         boolean isName = "name".equals(field);
         if (args.length < 2) {
-            sender.sendMessage("[CustomMobs] Uso: /custommobs " + (isName ? "color" : "glow")
+            sender.sendMessage(TAG + " Uso: /custommobs " + (isName ? "color" : "glow")
                     + " <color|" + MobStyle.OFF + ">");
-            sender.sendMessage("[CustomMobs] Colores: RED, BLUE, GREEN, GOLD, AQUA, LIGHT_PURPLE...");
+            sender.sendMessage(TAG + " Colores: RED, BLUE, GREEN, GOLD, AQUA, LIGHT_PURPLE...");
             return;
         }
 
         String raw = args[1].toLowerCase(Locale.ROOT);
         boolean off = MobStyle.OFF.equals(raw) || "none".equals(raw);
         if (!off && MobStyle.color(raw) == null) {
-            sender.sendMessage("[CustomMobs] Color invalido: '" + args[1] + "'. Prueba RED, GOLD... o '"
+            sender.sendMessage(TAG + " Color invalido: '" + args[1] + "'. Prueba RED, GOLD... o '"
                     + MobStyle.OFF + "'.");
             return;
         }
@@ -355,7 +368,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         if (teamId.isPresent()) {
             UUID leader = teams.ownerOf(player.getUniqueId()).orElse(null);
             if (leader == null || !leader.equals(player.getUniqueId())) {
-                sender.sendMessage("[CustomMobs] Tu team decide este ajuste: solo su jefe puede cambiarlo.");
+                sender.sendMessage(TAG + " Tu team decide este ajuste: solo su jefe puede cambiarlo.");
                 return;
             }
             viaTeam = true;
@@ -370,7 +383,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         this.plugin.styles().registry().save();
         int touched = this.plugin.styles().refresh();
 
-        sender.sendMessage("[CustomMobs] " + (isName ? "Color del nombre" : "Brillo") + " en '" + value + "'"
+        sender.sendMessage(TAG + " " + (isName ? "Color del nombre" : "Brillo") + " en '" + value + "'"
                 + (viaTeam ? " para todo el team" : "") + ". Mobs actualizados: " + touched + ".");
     }
 
@@ -382,7 +395,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
      * y despues cualquier mob lo llama desde su tabla de drops con {@code item: <nombre>}.
      */
     private void item(CommandSender sender, String[] args) {
-        String usage = "[CustomMobs] Uso: /custommobs item save <nombre> | list | remove <nombre>";
+        String usage = TAG + " Uso: /custommobs item save <nombre> | list | remove <nombre>";
         if (args.length < 2) {
             sender.sendMessage(usage);
             return;
@@ -390,39 +403,39 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         switch (args[1].toLowerCase(Locale.ROOT)) {
             case "save" -> {
                 if (!(sender instanceof Player player)) {
-                    sender.sendMessage("[CustomMobs] 'item save' necesita tu mano: solo desde el juego.");
+                    sender.sendMessage(TAG + " 'item save' necesita tu mano: solo desde el juego.");
                     return;
                 }
                 if (args.length < 3) {
-                    sender.sendMessage("[CustomMobs] Uso: /custommobs item save <nombre>");
+                    sender.sendMessage(TAG + " Uso: /custommobs item save <nombre>");
                     return;
                 }
                 ItemStack hand = player.getInventory().getItemInMainHand();
                 if (hand.getType().isAir()) {
-                    sender.sendMessage("[CustomMobs] Pon el objeto a guardar en la mano principal.");
+                    sender.sendMessage(TAG + " Pon el objeto a guardar en la mano principal.");
                     return;
                 }
                 if (!this.plugin.drops().catalog().save(args[2], hand.clone())) {
-                    sender.sendMessage("[CustomMobs] Nombre invalido: solo letras, numeros, guion y guion bajo (max 48).");
+                    sender.sendMessage(TAG + " Nombre invalido: solo letras, numeros, guion y guion bajo (max 48).");
                     return;
                 }
                 String name = args[2].toLowerCase(Locale.ROOT).trim().replace(' ', '_');
-                sender.sendMessage("[CustomMobs] Item guardado como '" + name + "' en items/" + name + ".yml.");
-                sender.sendMessage("[CustomMobs] Para que caiga, en el yml del mob: drops: - item: '" + name + "'");
+                sender.sendMessage(TAG + " Item guardado como '" + name + "' en items/" + name + ".yml.");
+                sender.sendMessage(TAG + " Para que caiga, en el yml del mob: drops: - item: '" + name + "'");
             }
             case "list" -> {
                 var names = this.plugin.drops().catalog().names();
-                sender.sendMessage("[CustomMobs] Items guardados (" + names.size() + "):");
+                sender.sendMessage(TAG + " Items guardados (" + names.size() + "):");
                 for (String name : names) {
                     sender.sendMessage(" - " + name);
                 }
             }
             case "remove" -> {
                 if (args.length < 3 || !this.plugin.drops().catalog().remove(args[2])) {
-                    sender.sendMessage("[CustomMobs] Uso: /custommobs item remove <nombre> (debe existir)");
+                    sender.sendMessage(TAG + " Uso: /custommobs item remove <nombre> (debe existir)");
                     return;
                 }
-                sender.sendMessage("[CustomMobs] Item '" + args[2].toLowerCase(Locale.ROOT) + "' borrado del catalogo.");
+                sender.sendMessage(TAG + " Item '" + args[2].toLowerCase(Locale.ROOT) + "' borrado del catalogo.");
             }
             default -> sender.sendMessage(usage);
         }
@@ -443,15 +456,15 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
                 break;
             }
         }
-        sender.sendMessage("[CustomMobs] Mostrados: " + shown + ". Usa la clave completa en 'enchants:' del yml.");
+        sender.sendMessage(TAG + " Mostrados: " + shown + ". Usa la clave completa en 'enchants:' del yml.");
     }
 
     private void help(CommandSender sender) {
-        sender.sendMessage("[CustomMobs] /custommobs reload | list | give <id> [jugador] | spawn <id> [mundo x y z]");
-        sender.sendMessage("[CustomMobs]           | remove [radio] | active | kill <id> | enchants [filtro]");
-        sender.sendMessage("[CustomMobs]           | cuota [jugador] | cuota recontar <jugador> | cuota retirar <jugador>");
-        sender.sendMessage("[CustomMobs]           | item save <nombre> | item list | item remove <nombre>  (catalogo de items)");
-        sender.sendMessage("[CustomMobs]           | color <color|nada> | glow <color|nada>  (tus player mobs)");
+        sender.sendMessage(TAG + " /custommobs reload | list | give <id> [jugador] | spawn <id> [mundo x y z]");
+        sender.sendMessage(TAG + "           | remove [radio] | active | kill <id> | enchants [filtro]");
+        sender.sendMessage(TAG + "           | cuota [jugador] | cuota recontar <jugador> | cuota retirar <jugador>");
+        sender.sendMessage(TAG + "           | item save <nombre> | item list | item remove <nombre>  (catalogo de items)");
+        sender.sendMessage(TAG + "           | color <color|nada> | glow <color|nada>  (tus player mobs)");
     }
 
     @Override
