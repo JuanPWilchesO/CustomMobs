@@ -663,6 +663,42 @@ muerte ni retirada (un plugin externo, un corte), la cuenta queda alta:
 
 ---
 
+## Compilar y publicar una version
+
+Para compilar hace falta **JDK 25**: `paper-api` 26.3 viene en bytecode de Java 25 y un
+javac anterior no puede leerlo. La salida, en cambio, es **bytecode 21**, o sea que el jar
+funciona en servidores con **Java 21+**.
+
+```
+mvn -B clean package        # deja Core/target/CustomMobs-<version>.jar
+```
+
+Para publicar una version nueva:
+
+1. Sube el numero en los **tres** `pom.xml` (el `plugin.yml` lo hereda por filtrado).
+2. Anota los cambios en `CHANGELOG.md`.
+3. `git commit`, `git tag -a vX.Y.Z -m '...'` y `git push origin master vX.Y.Z`.
+4. Adjunta el jar:
+
+```
+gh release create vX.Y.Z Core/target/CustomMobs-X.Y.Z.jar \
+  --title 'CustomMobs X.Y.Z' --notes-file CHANGELOG.md
+```
+
+### Por que no hay build automatico (todavia)
+
+El proyecto compila contra tres APIs de plugins **opcionales** que hoy no estan en ningun
+repositorio publico accesible:
+
+- `com.hites.godxteam:teams-api` (bandos de jugadores)
+- `me.libraryaddict:libsdisguises` (apariencias) — la version publica usa otras
+  coordenadas y otro repositorio
+- `com.github.retrooper:packetevents-spigot` — lo exige la API de LibsDisguises al compilar
+
+Mientras sigan asi, un runner limpio no puede resolverlas y el jar hay que adjuntarlo a
+mano. La solucion de fondo es dejar de compilar contra ellas y llamarlas por reflexion,
+como ya se hace para cargarlas en tiempo de ejecucion.
+
 ## Licencia
 
 GNU General Public License v3.0. Mira `LICENSE`.
