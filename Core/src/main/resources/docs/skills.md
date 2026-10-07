@@ -134,5 +134,8 @@ Los mobs de `category: server` **no tienen dueno**, y eso cambia los objetivos:
 - Si falla la tirada de `chance`, se reintenta en el siguiente ciclo **sin gastar** el
   cooldown.
 - `range` tiene un tope duro de **32 bloques**; lo que pidas por encima se recorta.
+- `range` es **alcance maximo tambien para `owner` y `target`**: una skill de dueno no
+  alcanza a su dueno si esta fuera del radio, ni una de objetivo a un enemigo lejano. El
+  valor por defecto son **8 bloques**.
 - Una skill mal escrita **se descarta sola**. Nunca tumba la carga del mob.
 - El intervalo de evaluacion es `skills.interval-ticks` del config (20 = 1 segundo).

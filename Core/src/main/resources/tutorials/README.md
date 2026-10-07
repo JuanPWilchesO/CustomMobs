@@ -11,6 +11,7 @@ Guias paso a paso. Se leen en orden; cada una anade una funcionalidad sobre la a
 | `05-objeto-con-nbt.md` | el catalogo de objetos con NBT |
 | `06-disfraz-sonidos-y-colores.md` | apariencia, sonidos y estilo por jugador o team |
 | `07-libro-y-mejoras.md` | el libro de inspeccion y un item de mejora |
+| `08-monturas.md` | una montura: aspecto, efectos, paso helado y cupo |
 
 Los ejemplos numerados que se copian solos en `plugins/CustomMobs/mobs/` son el punto de
 partida: abrelos en orden, tienen comentarios que explican cada clave.

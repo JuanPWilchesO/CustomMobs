@@ -27,7 +27,7 @@ cualquiera de ellos el plugin sigue funcionando: cada uno degrada por su cuenta.
 2. Arranca el servidor una vez. Se crean:
    - `plugins/CustomMobs/config.yml` — configuracion general.
    - `plugins/CustomMobs/factions.yml` — relaciones entre facciones.
-   - `plugins/CustomMobs/mobs/` — un archivo por mob. Se copian **cinco ejemplos
+   - `plugins/CustomMobs/mobs/` — un archivo por mob. Se copian **seis ejemplos
      numerados** que funcionan como tutorial: abrelos en orden.
    - `plugins/CustomMobs/docs/` — esta documentacion.
    - `plugins/CustomMobs/tutorials/` — los tutoriales paso a paso.
@@ -45,8 +45,9 @@ cualquiera de ellos el plugin sigue funcionando: cada uno degrada por su cuenta.
 2. **`el-archivo-de-un-mob.md`** — todas las claves que admite un mob.
 3. **`skills.md`** — hechizos, curaciones, mensajes y pociones.
 4. **`anclas-spawners-y-huevo.md`** — el huevo como ficha del mob, y los spawners.
-5. **`facciones-equipos-y-combate.md`** — a quien ataca cada mob, y por que.
-6. **`comandos-permisos-y-cupos.md`** — todo lo que se puede escribir por chat.
+5. **`monturas.md`** — caballos que se montan, con efectos y paso helado.
+6. **`facciones-equipos-y-combate.md`** — a quien ataca cada mob, y por que.
+7. **`comandos-permisos-y-cupos.md`** — todo lo que se puede escribir por chat.
 
 ## Indice completo
 
@@ -58,6 +59,7 @@ cualquiera de ellos el plugin sigue funcionando: cada uno degrada por su cuenta.
 | `libro-y-mejoras.md` | Libro de inspeccion e items de mejora de mobs |
 | `facciones-equipos-y-combate.md` | Facciones, Teams, actitudes y politica de ataque |
 | `anclas-spawners-y-huevo.md` | Leash, ancla, spawners y el ciclo de vida del huevo |
+| `monturas.md` | Monturas: variante, efectos, paso helado y cupo propio |
 | `comandos-permisos-y-cupos.md` | Comandos, permisos y cupo por grupo |
 | `configuracion.md` | `config.yml` linea por linea |
 | `api-y-problemas.md` | API para otros plugins y problemas frecuentes |

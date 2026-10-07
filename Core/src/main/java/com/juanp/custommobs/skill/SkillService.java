@@ -257,8 +257,9 @@ public final class SkillService extends BukkitRunnable {
     /**
      * {@code true} si el objetivo esta dentro del radio de la skill.
      *
-     * <p>Un radio de 0 o menos significa "sin limite": asi se comportaban antes las skills
-     * de dueno y objetivo, de modo que una definicion que no diga radio no cambia.
+     * <p>El cargador siempre deja un radio util (por defecto 8 bloques), asi que en la
+     * practica estas skills siempre tienen tope; la guarda de 0 o menos solo protege a quien
+     * construya un SkillSpec a mano.
      */
     private boolean inRange(LivingEntity source, LivingEntity target, double range) {
         if (range <= 0.0D) {

@@ -7,7 +7,7 @@ Todo mob vive en `mobs/<archivo>.yml`. Solo `id` y `type` son obligatorios.
 | Campo | Valores | Por defecto | Notas |
 |---|---|---|---|
 | `id` | texto | nombre del archivo | identificador unico |
-| `category` | `player` \| `server` | `player` | ver abajo |
+| `category` | `player` \| `server` \| `mount` | `player` | ver abajo |
 | `display-name` | texto con `&` | el `id` | los codigos `&` se traducen a color |
 | `type` | tipo de entidad | — | `ZOMBIE`, `SKELETON`, `VILLAGER`, `RAVAGER`… cualquier entidad que sea un `Mob` |
 | `glow` | `true` \| `false` | `false` | contorno visible |
@@ -16,6 +16,8 @@ Todo mob vive en `mobs/<archivo>.yml`. Solo `id` y `type` son obligatorios.
 
 **`player`** — se invoca con un huevo crafteado, tiene dueno y lo protege.
 **`server`** — no tiene dueno, pertenece a una faccion, y puede ser un spawner.
+**`mount`** — un caballo o similar que el jugador monta, con efectos y cupo propios.
+Ver `monturas.md`.
 
 ## Atributos
 
@@ -183,6 +185,67 @@ respawn-seconds: 30
 - `ai: false`: el mob se queda quieto en su puesto. Util para figurantes.
 - `respawn-seconds`: solo mobs de servidor. `0` = una sola vida. Con un valor mayor,
   el punto funciona como **spawner** de ese mob.
+
+## Un mob custom no se modifica a mano
+
+El mob cambia **solo** por lo que el plugin permite: el estilo de su dueno, los items de
+mejora, su huevo. Todo lo demas lo decide su definicion. Se bloquea, con aviso en el chat:
+
+| Intento | Resultado |
+|---|---|
+| Renombrarlo con una **etiqueta** (`name tag`) | bloqueado |
+| Ponerle **silla** o **armadura** a mano | bloqueado |
+| Llevarselo con una **correa** (`lead`) | bloqueado |
+| **Alimentarlo** o criarlo | bloqueado |
+| Equiparlo con un **dispensador** | bloqueado |
+| Mover la silla o la armadura en el **inventario** de una montura | bloqueado |
+
+Con la mano vacia **si** se puede montar una montura: solo se bloquea el clic cuando trae
+puesto uno de esos objetos.
+
+## Montura (`category: mount`)
+
+Una montura anade una seccion `mount:` con su variante, su armadura, sus efectos constantes
+y su paso helado, y tiene **su propia cuenta de cupo**. Todo esta en `monturas.md`.
+
+## Aparicion natural (`spawn`)
+
+Solo para mobs de `category: server`: pide que el mob **brore solo** por el mundo. Sin esta
+seccion, un mob de servidor nunca aparece por su cuenta.
+
+```yaml
+spawn:
+  natural: true
+  chance: 0.6          # probabilidad por intento (0..1); por defecto 0.1
+  group:
+    min: 1
+    max: 3
+  time: any            # any | day | night
+  light: { min: 0, max: 15 }
+  y: { min: 0, max: 320 }
+  distance:
+    min: 16.0          # distancia al jugador (por defecto 24)
+    max: 48.0          # (por defecto 96)
+  cap: 6               # tope de este mob vivo a la vez (por defecto 20)
+  worlds: [world]      # opcional: solo en estos mundos
+  biomes: [plains]     # opcional: solo en estos biomas
+```
+
+| Clave | Que hace | Por defecto |
+|---|---|---|
+| `natural` | activa la aparicion; sin esto no hay | `false` |
+| `chance` | probabilidad por intento, de `0.0` a `1.0` | `0.1` |
+| `group.min` / `group.max` | tamano del grupo que brota | `1` / el minimo |
+| `time` | momento del dia: `any`, `day`, `night` | `any` |
+| `light.min` / `light.max` | rango de luz del bloque | `0` / `15` |
+| `y.min` / `y.max` | rango de altura | `0` / `320` |
+| `distance.min` / `distance.max` | distancia al jugador, en bloques | `24.0` / `96.0` |
+| `cap` | tope de este mob natural vivo a la vez | `20` |
+| `worlds` | lista de mundos permitidos | todos |
+| `biomes` | lista de biomas permitidos | todos |
+
+El ritmo y el tope global salen del config (`spawning`). Un mob natural es de **una sola
+vida** y **no deja spawner**.
 
 ## Crafteo
 

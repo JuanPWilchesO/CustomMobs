@@ -34,11 +34,14 @@ Los mobs **guardados en su huevo** tambien aparecen, con la vida que llevaban gu
 ```yaml
 book:
   material: WRITTEN_BOOK
-  display-name: '&6Libro de mobs'
+  display-name: '&6Inventario de fuerzas'
   lore:
     - '&7Muestra tus mobs y sus estadisticas.'
     - '&7Clic derecho para abrirlo.'
 ```
+
+> **Ojo con el color**: el libro se pinta sobre el **papel claro**, asi que los tonos
+> blancos y muy claros no se leen. Usa colores **oscuros** para el texto y las etiquetas.
 
 ---
 

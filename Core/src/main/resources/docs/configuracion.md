@@ -37,6 +37,11 @@ limits:
     default: 1
     vip: 2
     staff: 3
+  default-mount-mobs: 1
+  mount-groups:
+    default: 1
+    vip: 2
+    staff: 3
 
 point:
   chunk-radius: 4
@@ -49,6 +54,19 @@ recall:
   radius: 0.0
   mob-seconds: 60
   chunk-seconds: 120
+
+spawning:
+  enabled: true
+  interval-seconds: 10
+  attempts: 2
+  global-cap: 80
+
+book:
+  material: WRITTEN_BOOK
+  display-name: '&6Inventario de fuerzas'
+  lore:
+    - '&7Muestra tus mobs y sus estadisticas.'
+    - '&7Clic derecho para abrirlo.'
 ```
 
 ## Seccion por seccion
@@ -71,24 +89,35 @@ recall:
 | `limits.default-point-mobs` | cupo de mobs anclados a un bloque, sin grupo mapeado |
 | `limits.groups` | cupo por grupo de LuckPerms (anclados al dueno) |
 | `limits.point-groups` | cupo por grupo para los anclados a un bloque |
+| `limits.default-mount-mobs` | cupo de monturas, sin grupo mapeado |
+| `limits.mount-groups` | cupo de monturas por grupo de LuckPerms |
 | `point.chunk-radius` | radio en chunks que se carga alrededor de un bloque ancla |
 | `worlds.enabled` | mundos donde funciona el plugin; vacio = todos |
 | `recall.enabled` | si los mobs abandonados se retiran solos |
 | `recall.radius` | radio de abandono; `0` = derivado de la simulation-distance |
 | `recall.mob-seconds` | segundos antes de destruir el mob abandonado |
 | `recall.chunk-seconds` | segundos antes de liberar el chunk que se mantuvo cargado |
+| `spawning.enabled` | si los mobs de servidor brotan solos por el mundo |
+| `spawning.interval-seconds` | cada cuanto se intenta |
+| `spawning.attempts` | intentos por jugador y ciclo |
+| `spawning.global-cap` | tope de mobs naturales vivos a la vez |
+| `book.material` | material del libro de inspeccion |
+| `book.display-name` | nombre del libro |
+| `book.lore` | descripcion del libro |
 
-## Dos cuentas de mobs
+## Tres cuentas de mobs
 
-El cupo de mobs de jugador esta **partido en dos**, y no se pisan:
+El cupo de mobs de jugador esta **partido en tres**, y no se pisan:
 
 - **Anclados al dueno** (`anchor: owner`): los que te siguen. Los manda
   `limits.default-player-mobs` y `limits.groups`.
 - **Anclados a un bloque** (`anchor: point`): los fijos. Los manda
   `limits.default-point-mobs` y `limits.point-groups`.
+- **Monturas** (`category: mount`): las que montas. Las manda
+  `limits.default-mount-mobs` y `limits.mount-groups`.
 
-Asi puedes llevar el cupo de seguidores lleno y, ademas, tener tus mobs fijos. Un
-`0` en cualquiera de los dos significa **sin limite** para esa cuenta.
+Asi puedes llevar el cupo de seguidores y el de fijos llenos y, ademas, tener tu montura.
+Un `0` en cualquiera de las tres significa **sin limite** para esa cuenta.
 
 ## Zona cargada de un mob fijo (`point.chunk-radius`)
 
@@ -131,6 +160,31 @@ queda inerte.
 destruir el mob lo dejaria fuera de juego, sin forma de tocarlo.
 - `radius: 0.0` deriva el radio de la `simulation-distance` del mundo. Pon un valor fijo
 si quieres otro comportamiento.
+
+## Aparicion aleatoria (`spawning`)
+
+Los mobs de `category: server` pueden **brotar solos** por el mundo si su yml lo pide con
+`spawn.natural`. Es **aparte de los spawners**: un spawner es un punto fijo que reaparece;
+esto son mobs al azar, de **una sola vida** y sin dejar spawner. No los toca ni los
+sustituye: solo suma.
+
+```yaml
+spawning:
+  enabled: true
+  interval-seconds: 10
+  attempts: 2
+  global-cap: 80
+```
+
+| Clave | Que hace |
+|---|---|
+| `enabled` | si la aparicion aleatoria funciona |
+| `interval-seconds` | cada cuanto se intenta |
+| `attempts` | intentos por jugador y ciclo |
+| `global-cap` | tope de mobs naturales vivos a la vez en todo el servidor |
+
+En el mob se pide con su propia seccion `spawn:` (probabilidad, tamano de grupo, hora, luz,
+altura, distancia al jugador y tope propio). Ver `el-archivo-de-un-mob.md`.
 
 ## Filtrar mundos (`worlds.enabled`)
 

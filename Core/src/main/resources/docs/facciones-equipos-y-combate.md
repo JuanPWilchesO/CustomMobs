@@ -72,6 +72,16 @@ targeting:
   aggro-on-friendly-mobs: true
 ```
 
+## Fuego amigo
+
+Un mob **no se dana con su propio bando**:
+
+- Pegarle con la espada a **tu propio mob** no le quita vida.
+- Un **companero de team** o un **aliado** tampoco le hace dano.
+
+Asi puedes pelear **al lado** de tus mobs sin herirlos. Es la misma regla de "aliado
+intocable" que usa la IA para elegir a quien atacar.
+
 ## Teams (opcional)
 
 Con **Teams** instalado, los jugadores se agrupan en bandos:

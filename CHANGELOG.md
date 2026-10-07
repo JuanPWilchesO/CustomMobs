@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0 — monturas, aparicion natural y mejoras
+
+- **Monturas** (`category: mount`): caballos y similares con variante, armadura, **efectos
+  constantes** (al mob, a quien la monta o a los jugadores del bando dentro de un radio) y
+  **paso helado**. Tienen **su propia cuenta de cupo**, aparte de los mobs que siguen y de
+  los fijos. **No se teletransportan**: si las dejas atras se quedan, y la ventana de
+  abandono se las lleva con aviso.
+- **Aparicion aleatoria** (`spawn.natural`): los mobs de servidor pueden brotar solos por el
+  mundo, de una sola vida y sin dejar spawner, con probabilidad, grupo, hora, luz, altura y
+  tope propios. Es aparte de los spawners: solo suma.
+- **Libro de inspeccion** renombrado a **Inventario de fuerzas**, con los valores en colores
+  oscuros para que se lean sobre el papel claro.
+- **Un mob custom no se modifica a mano**: se bloquean la etiqueta, la silla o armadura a
+  mano, la correa, alimentarlo o criarlo y el equipado por dispensador.
+- **Fuego amigo bloqueado**: tu propio mob, tus companeros de team y tus aliados no reciben
+  dano de tu bando.
+- **El huevo conserva las estadisticas** del mob al recogerlo y volverlo a colocar: la vida
+  herida y las mejoras viajan con el (antes, guardarlo era una cura gratis).
+- **`kill` alcanza los mobs en chunks descargadas**: carga su chunk un momento por el vinculo
+  y los mata, asi que ya se limpia lo que quedo perdido.
+- **`range` es alcance maximo tambien para `owner` y `target`**: una skill de montura ya no
+  alcanza al dueno desde el otro lado del mundo.
+
 ## 0.1.0 — primera version publica
 
 - **Mobs definidos por YAML**, un archivo por mob en `mobs/`. Dos categorias: `player`

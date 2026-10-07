@@ -15,6 +15,7 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `cuota [jugador]` | consulta el cupo de mobs |
 | `cuota recontar <jugador>` | rehace la cuenta **sin tocar mobs** |
 | `cuota retirar <jugador>` | retira sus mobs y deja el cupo en cero (**destructivo**) |
+| `despedir <id\|todos>` | retira **tus** mobs; lo puede usar cualquier jugador con los suyos |
 | `item save <nombre>` | guarda el objeto de tu mano en el catalogo, con su NBT |
 | `item list` | lista los objetos guardados |
 | `item remove <nombre>` | borra uno del catalogo |
@@ -46,11 +47,13 @@ Desde consola, `spawn` pide mundo y coordenadas: `/custommobs spawn <id> <mundo>
 | `custommobs.player` | invocar mobs con los huevos | `true` |
 | `custommobs.admin` | comandos de administracion | `op` |
 
-Un jugador raso puede hacer **tres cosas** por su cuenta, y nada mas:
+Un jugador raso puede hacer **cuatro cosas** por su cuenta, y nada mas:
 
 - `cuota` **sin argumentos** — ver **su propio** cupo.
 - `color <color|nada>` — el color del nombre de **sus** mobs.
 - `glow <color|nada>` — el brillo de **sus** mobs.
+- `despedir <id|todos>` — retirar **sus** mobs. Es su via para deshacerse de ellos: si no,
+  no tendria forma de bajar su propio cupo.
 
 Con Teams, `color` y `glow` los decide **solo el jefe del team** y aplican a los mobs de
 todos sus miembros.
@@ -72,6 +75,7 @@ En `config.yml`:
 limits:
   default-player-mobs: 3   # mobs que te siguen (anchor: owner)
   default-point-mobs: 1    # mobs fijos a un bloque (anchor: point)
+  default-mount-mobs: 1    # monturas (category: mount)
   groups:
     default: 3
     vip: 5
@@ -80,11 +84,15 @@ limits:
     default: 1
     vip: 2
     staff: 3
+  mount-groups:
+    default: 1
+    vip: 2
+    staff: 3
 ```
 
-El cupo esta **partido en dos cuentas que no se pisan**: los mobs que te siguen y los
-fijos a un bloque. Puedes llevar una llena y seguir colocando de la otra.
-`/custommobs cuota` muestra las dos.
+El cupo esta **partido en tres cuentas que no se pisan**: los mobs que te siguen, los
+fijos a un bloque y las monturas. Puedes llevar una llena y seguir colocando de las otras.
+`/custommobs cuota` muestra las tres.
 
 - El grupo se lee de **LuckPerms en el momento de invocar**, no al conectarse: un cambio de
   rango aplica al instante.
