@@ -8,8 +8,9 @@ package com.juanp.custommobs.mob;
  *                  {@code nearby}
  * @param amplifier nivel; {@code 0} = nivel I
  * @param radius    radio en bloques, solo para {@code nearby}
+ * @param visible   si el efecto se muestra con particulas e icono; por defecto, no
  */
-public record MountEffect(String potion, String to, int amplifier, double radius) {
+public record MountEffect(String potion, String to, int amplifier, double radius, boolean visible) {
 
     /** {@code true} si el efecto va al jinete. */
     public boolean toRider() {

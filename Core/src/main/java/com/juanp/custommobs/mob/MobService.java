@@ -598,14 +598,13 @@ public final class MobService implements Listener {
             horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
         }
         if (horse instanceof Horse real) {
+            // La variante se fija SIEMPRE. Sin esto el caballo sale de un color al azar,
+            // asi que al recogerlo y volver a colocarlo parece otro: es justo lo que no
+            // debe pasar con una cosa visible que el servidor no controla.
             Horse.Color color = colorOf(spec.color());
-            if (color != null) {
-                real.setColor(color);
-            }
+            real.setColor(color != null ? color : Horse.Color.WHITE);
             Horse.Style style = styleOf(spec.style());
-            if (style != null) {
-                real.setStyle(style);
-            }
+            real.setStyle(style != null ? style : Horse.Style.NONE);
         }
         if (spec.armor() != null
                 && horse.getInventory() instanceof ArmoredHorseInventory armored) {

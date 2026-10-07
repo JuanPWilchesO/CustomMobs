@@ -359,7 +359,8 @@ public final class MobLoader {
                     potion,
                     trimOrNull(asString(entry.get("to"))),
                     (int) Math.max(0L, Math.round(asNumber(entry.get("amplifier"), 0.0D))),
-                    Math.max(0.0D, asNumber(entry.get("radius"), 8.0D))));
+                    Math.max(0.0D, asNumber(entry.get("radius"), 8.0D)),
+                    Boolean.parseBoolean(String.valueOf(entry.get("visible")))));
         }
         return List.copyOf(effects);
     }

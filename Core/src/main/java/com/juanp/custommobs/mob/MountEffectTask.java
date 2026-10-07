@@ -50,8 +50,10 @@ public final class MountEffectTask extends BukkitRunnable {
                 if (type == null) {
                     continue;
                 }
+                // Normalmente sin particulas ni icono: no es una pocion bebida. Pero
+                // se puede pedir visible, que para probar es mucho mas util.
                 PotionEffect potion = new PotionEffect(type, DURATION_TICKS,
-                        Math.max(0, effect.amplifier()), false, false, false);
+                        Math.max(0, effect.amplifier()), false, effect.visible(), effect.visible());
                 if (effect.toRider()) {
                     for (Entity passenger : horse.getPassengers()) {
                         if (passenger instanceof Player riding && this.isFriendly(customMob, riding)) {

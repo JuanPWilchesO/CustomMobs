@@ -27,16 +27,20 @@ mount:
   # El agua que pisa se hiela y se deja derretir.
   frost-walker: true
   effects:
-    # Al propio caballo.
+    # Al propio caballo. 'visible: true' solo para la prueba: normalmente los efectos
+    # van sin particulas, porque no son una pocion que alguien haya bebido.
     - potion: fire_resistance
+      visible: true
     # A quien la monta.
     - potion: conduit_power
       to: rider
+      visible: true
     # A quien este cerca: SOLO dueno, su team y sus aliados.
     - potion: speed
       to: nearby
       radius: 8.0
       amplifier: 0
+      visible: true
 
 skills:
   # Una montura no entra en combate: su via son las pasivas.
