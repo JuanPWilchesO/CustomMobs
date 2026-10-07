@@ -111,7 +111,7 @@ public record PluginConfig(
                 readGroupLimits(cfg, "limits.mount-groups"),
                 Math.max(0, cfg.getInt("point.chunk-radius", 4)),
                 bookMaterial(cfg),
-                Texts.color(cfg.getString("book.display-name", "&6Libro de mobs")),
+                Texts.color(cfg.getString("book.display-name", "&6Inventario de fuerzas")),
                 colorList(cfg.getStringList("book.lore")),
                 cfg.getBoolean("branding.motd-enabled", true),
                 motdOf(cfg),

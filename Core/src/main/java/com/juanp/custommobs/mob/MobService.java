@@ -893,6 +893,12 @@ public final class MobService implements Listener {
         if (!leash.enabled()) {
             return;
         }
+        // Una montura NO se teletransporta detras de su dueno. Si la dejas atras se queda
+        // donde esta, y si no vuelves a por ella o la recoges, la ventana de abandono se
+        // la lleva. Aparecer de golpe a la espalda era lo contrario de montar.
+        if (customMob.definition().mountable()) {
+            return;
+        }
         Location anchor = this.anchorOf(customMob);
         if (anchor == null) {
             return;

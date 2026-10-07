@@ -82,7 +82,7 @@ public final class MobBookService {
 
         List<String> pages = new ArrayList<>();
         if (deployed.isEmpty() && stored.isEmpty()) {
-            pages.add(Texts.color("&8No tienes ningun mob todavia."));
+            pages.add(Texts.color("&0No tienes ningun mob todavia."));
         }
         for (CustomMob customMob : deployed) {
             pages.add(this.page(customMob));
@@ -97,7 +97,7 @@ public final class MobBookService {
             player.sendMessage(Texts.color("&cNo se pudo construir el libro."));
             return;
         }
-        meta.setTitle(Texts.color("&0Tus mobs"));
+        meta.setTitle(Texts.color("&6Inventario de fuerzas"));
         meta.setAuthor("CustomMobs");
         meta.setPages(pages);
         book.setItemMeta(meta);
@@ -111,11 +111,13 @@ public final class MobBookService {
         lines.add(customMob.definition().displayName());
         lines.add(Texts.color("&8" + customMob.definition().id()));
         lines.add("");
-        lines.add(Texts.color("&cVida: &f" + trim(entity.getHealth()) + " &8/ &f"
+        // El papel del libro es claro: el texto va en tonos OSCUROS. En blanco o en
+        // colores muy claros no se lee.
+        lines.add(Texts.color("&4Vida: &0" + trim(entity.getHealth()) + " &8/ &0"
                 + trim(value(entity, Attribute.MAX_HEALTH))));
-        lines.add(Texts.color("&cAtaque: &f" + trim(value(entity, Attribute.ATTACK_DAMAGE))));
-        lines.add(Texts.color("&cVelocidad: &f" + trim(value(entity, Attribute.MOVEMENT_SPEED))));
-        lines.add(Texts.color("&cArmadura: &f" + trim(value(entity, Attribute.ARMOR))));
+        lines.add(Texts.color("&4Ataque: &0" + trim(value(entity, Attribute.ATTACK_DAMAGE))));
+        lines.add(Texts.color("&4Velocidad: &0" + trim(value(entity, Attribute.MOVEMENT_SPEED))));
+        lines.add(Texts.color("&4Armadura: &0" + trim(value(entity, Attribute.ARMOR))));
         lines.add("");
         lines.add(Texts.color("&8" + entity.getWorld().getName() + " "
                 + entity.getLocation().getBlockX() + " " + entity.getLocation().getBlockY()
@@ -131,9 +133,9 @@ public final class MobBookService {
         lines.add(name);
         lines.add(Texts.color("&8" + link.definitionId()));
         lines.add("");
-        lines.add(Texts.color("&7Guardado en su huevo."));
+        lines.add(Texts.color("&8Guardado en su huevo."));
         if (link.state() != null) {
-            lines.add(Texts.color("&cVida: &f" + trim(link.state().health())));
+            lines.add(Texts.color("&4Vida: &0" + trim(link.state().health())));
         }
         return String.join("\n", lines);
     }

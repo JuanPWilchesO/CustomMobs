@@ -112,7 +112,7 @@ book:
   # Solo lo reparte un administrador (/custommobs book), pero cualquier jugador puede
   # usarlo, para que el servidor lo venda o lo regale desde su economia.
   material: WRITTEN_BOOK
-  display-name: '&6Libro de mobs'
+  display-name: '&6Inventario de fuerzas'
   lore:
     - '&7Muestra tus mobs y sus estadisticas.'
     - '&7Clic derecho para abrirlo.'
