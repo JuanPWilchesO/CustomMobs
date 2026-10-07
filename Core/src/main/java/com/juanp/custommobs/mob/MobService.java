@@ -32,6 +32,7 @@ import org.bukkit.inventory.ArmoredHorseInventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Locale;
+import java.util.Set;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -351,6 +352,37 @@ public final class MobService implements Listener {
         int forgotten = this.playerMobs.resetOwner(ownerId);
         this.playerMobs.save();
         return new PurgeResult(doomed.size(), Math.max(0, forgotten - doomed.size()));
+    }
+
+    /**
+     * Destruye mobs de un jugador: los desplegados y los que tenga guardados.
+     *
+     * <p>Es la via del propio jugador para deshacerse de los suyos, ya que el plugin le
+     * impide matarlos a golpes. Los huevos que los representaban quedan inertes, porque
+     * el vinculo se borra.
+     *
+     * @param definitionId definicion a destruir, o {@code null} para todas
+     * @return cuantos vinculos se borraron
+     */
+    public int dismiss(UUID ownerId, String definitionId) {
+        int removed = 0;
+        for (UUID linkId : Set.copyOf(this.playerMobs.linksOf(ownerId))) {
+            PlayerMobRegistry.MobLink link = this.playerMobs.byLink(linkId).orElse(null);
+            if (link == null
+                    || (definitionId != null && !definitionId.equalsIgnoreCase(link.definitionId()))) {
+                continue;
+            }
+            CustomMob customMob = link.deployed() ? this.active.get(link.entityId()) : null;
+            if (customMob != null) {
+                // Quita la entidad y, de paso, el vinculo.
+                this.despawn(customMob);
+            } else {
+                this.playerMobs.removeLink(linkId);
+            }
+            removed++;
+        }
+        this.playerMobs.save();
+        return removed;
     }
 
     /** Cupo restante del jugador; {@code -1} si no hay limite configurado. */

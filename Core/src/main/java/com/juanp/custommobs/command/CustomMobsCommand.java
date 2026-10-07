@@ -53,7 +53,11 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         boolean ownQuota = args.length == 1 && "cuota".equalsIgnoreCase(args[0]);
         boolean ownStyle = args.length == 2
                 && ("color".equalsIgnoreCase(args[0]) || "glow".equalsIgnoreCase(args[0]));
-        String needed = (help || ownQuota || ownStyle)
+        // 'despedir' es de jugador: es su via para deshacerse de sus mobs, ya que el
+        // plugin le impide matarlos a golpes.
+        boolean ownDismiss = args.length == 2
+                && ("despedir".equalsIgnoreCase(args[0]) || "dismiss".equalsIgnoreCase(args[0]));
+        String needed = (help || ownQuota || ownStyle || ownDismiss)
                 ? this.plugin.config().playerPermission()
                 : this.plugin.config().adminPermission();
         if (!sender.hasPermission(needed)) {
@@ -88,6 +92,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             case "spawner" -> this.spawner(sender, args);
             case "book", "libro" -> this.book(sender, args);
             case "upgrade", "mejora" -> this.upgrade(sender, args);
+            case "despedir", "dismiss" -> this.dismiss(sender, args);
             case "color" -> this.setStyle(sender, args, "name");
             case "glow" -> this.setStyle(sender, args, "glow");
             default -> this.help(sender);
@@ -410,6 +415,32 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         return names;
     }
 
+    /**
+     * Despide mobs propios: los destruye a proposito.
+     *
+     * <p>Lo puede usar cualquier jugador porque solo alcanza a los suyos. Es la
+     * contrapartida de que el plugin le impida matarlos a golpes.
+     */
+    private void dismiss(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(TAG + " 'despedir' solo funciona desde el juego.");
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(TAG + " Uso: /custommobs despedir <id|todos>");
+            return;
+        }
+        String id = args[1].toLowerCase(Locale.ROOT);
+        boolean all = id.equals("todos") || id.equals("all");
+        if (!all && this.plugin.registry().get(id).isEmpty()) {
+            sender.sendMessage(TAG + " No existe ese mob; miralos con /custommobs list.");
+            return;
+        }
+        int removed = this.plugin.mobs().dismiss(player.getUniqueId(), all ? null : id);
+        sender.sendMessage(TAG + " Mobs despedidos: " + removed
+                + ". Los huevos que los representaban quedan inservibles.");
+    }
+
     /** Entrega el libro de inspeccion. Repartirlo es tarea de administracion. */
     private void book(CommandSender sender, String[] args) {
         Player target = this.targetPlayer(sender, args, 1);
@@ -702,6 +733,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(TAG + "           | spawner list | spawner remove <id> | spawner removeall [mob] | spawner reload");
         sender.sendMessage(TAG + "           | book [jugador]  (libro de inspeccion)");
         sender.sendMessage(TAG + "           | upgrade list | upgrade give <id> [jugador] | upgrade reload");
+        sender.sendMessage(TAG + "           | despedir <id|todos>  (tus mobs; cualquiera puede usarlo)");
     }
 
     @Override
@@ -716,7 +748,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             List<String> options = admin
                     ? List.of("reload", "list", "give", "spawn", "remove", "active", "kill",
                             "enchants", "cuota", "item", "color", "glow", "spawner", "book", "upgrade")
-                    : List.of("cuota", "color", "glow");
+                    : List.of("cuota", "color", "glow", "despedir");
             for (String option : options) {
                 if (option.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(option);

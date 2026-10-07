@@ -7,6 +7,7 @@ import com.juanp.custommobs.upgrade.UpgradeRegistry;
 import com.juanp.custommobs.upgrade.UpgradeService;
 import com.juanp.custommobs.api.CustomMobsApi;
 import com.juanp.custommobs.combat.AggroListener;
+import com.juanp.custommobs.combat.FriendlyFireListener;
 import com.juanp.custommobs.combat.TargetListener;
 import com.juanp.custommobs.audio.AmbientTask;
 import com.juanp.custommobs.audio.SoundListener;
@@ -32,6 +33,7 @@ import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
 import com.juanp.custommobs.mob.MountEffectTask;
+import com.juanp.custommobs.mob.MountFrostTask;
 import com.juanp.custommobs.recall.RecallService;
 import com.juanp.custommobs.skill.SkillInteractListener;
 import com.juanp.custommobs.skill.SkillService;
@@ -87,6 +89,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private RecallService recallService;
     private AnchorChunkService anchorChunks;
     private MountEffectTask mountEffects;
+    private MountFrostTask mountFrost;
     private UpgradeRegistry upgrades;
     private UpgradeService upgradeService;
     private MobBookService book;
@@ -155,6 +158,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
         pluginManager.registerEvents(new EggListener(this, this.craftService, this.mobService), this);
         pluginManager.registerEvents(new TargetListener(this.mobService), this);
         pluginManager.registerEvents(new AggroListener(this.mobService), this);
+        pluginManager.registerEvents(new FriendlyFireListener(this.mobService), this);
         pluginManager.registerEvents(new SoundListener(this.mobService, this.soundService), this);
         pluginManager.registerEvents(new DaylightListener(this.mobService), this);
         pluginManager.registerEvents(new SpawnerListener(this.mobService), this);
@@ -187,6 +191,10 @@ public final class CustomMobsPlugin extends JavaPlugin {
         // Efectos constantes de las monturas: al mob, al jinete o a quien pase cerca.
         this.mountEffects = new MountEffectTask(this, this.mobService);
         this.mountEffects.runTaskTimer(this, 20L, 20L);
+
+        // Paso helado: va mas seguido que los efectos, porque la montura se mueve.
+        this.mountFrost = new MountFrostTask(this, this.mobService);
+        this.mountFrost.runTaskTimer(this, 2L, 2L);
 
         this.ambientTask = new AmbientTask(this.soundService);
         this.ambientTask.runTaskTimer(this, 20L, 20L);
@@ -238,6 +246,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
         }
         if (this.mountEffects != null) {
             this.mountEffects.cancel();
+        }
+        if (this.mountFrost != null) {
+            this.mountFrost.cancel();
         }
         if (this.ambientTask != null) {
             this.ambientTask.cancel();

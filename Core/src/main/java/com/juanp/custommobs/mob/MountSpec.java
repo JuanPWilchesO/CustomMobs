@@ -16,6 +16,7 @@ import java.util.List;
  * @param tamed   si aparece domesticada; sin esto el jugador no puede montarla
  * @param armor   material de la armadura de caballo, o {@code null}
  * @param effects efectos constantes que reparte la montura mientras vive
+ * @param frostWalker si el agua que pisa se convierte en hielo escarchado
  */
 public record MountSpec(
         String color,
@@ -23,10 +24,11 @@ public record MountSpec(
         boolean saddled,
         boolean tamed,
         Material armor,
-        List<MountEffect> effects
+        List<MountEffect> effects,
+        boolean frostWalker
 ) {
 
     /** Lo que se aplica si el mob declara la categoria sin seccion {@code mount:}. */
     public static final MountSpec DEFAULT =
-            new MountSpec(null, null, true, true, null, List.of());
+            new MountSpec(null, null, true, true, null, List.of(), false);
 }

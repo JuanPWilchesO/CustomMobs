@@ -339,7 +339,8 @@ public final class MobLoader {
                 section.getBoolean("saddled", true),
                 section.getBoolean("tamed", true),
                 Material.matchMaterial(section.getString("armor", "")),
-                parseMountEffects(section));
+                parseMountEffects(section),
+                section.getBoolean("frost-walker", false));
     }
 
     /** Los efectos constantes que reparte la montura: al mob, al jinete o a quien este cerca. */
