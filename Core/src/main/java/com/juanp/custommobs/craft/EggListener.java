@@ -106,14 +106,17 @@ public final class EggListener implements Listener {
             }
         }
 
-        // Las dos cuentas son aparte: mobs que siguen al dueno y mobs fijos a un bloque.
-        boolean point = definition.get().leash().anchoredToPoint();
-        if (point ? this.service.atPointLimit(player.getUniqueId())
-                : this.service.atPlayerLimit(player.getUniqueId())) {
-            int max = point ? this.service.pointLimitOf(player.getUniqueId())
-                    : this.service.limitOf(player.getUniqueId());
-            player.sendMessage(Texts.color("&cYa tienes " + max
-                    + (point ? " mobs fijos desplegados" : " mobs desplegados")
+        // Cada cuenta es aparte: los que siguen al dueno, los fijos a un bloque y las
+        // monturas. Se comprueba solo la que le toca a este mob.
+        MobService.Account account = MobService.accountOf(definition.get());
+        if (this.service.atLimit(player.getUniqueId(), account)) {
+            int max = this.service.limitOf(player.getUniqueId(), account);
+            String what = switch (account) {
+                case MOUNT -> " monturas desplegadas";
+                case POINT -> " mobs fijos desplegados";
+                case OWNER -> " mobs desplegados";
+            };
+            player.sendMessage(Texts.color("&cYa tienes " + max + what
                     + ", tu maximo. Recoge alguno con su huevo."));
             return;
         }

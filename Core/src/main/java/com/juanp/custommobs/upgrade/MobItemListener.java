@@ -54,6 +54,56 @@ public final class MobItemListener implements Listener {
         this.book.open(event.getPlayer());
     }
 
+    /**
+     * Nadie cambia la silla ni la armadura de una montura.
+     *
+     * <p>Con la mano vacia se sigue pudiendo montar: solo se bloquea el clic cuando el
+     * jugador trae puesto precisamente eso.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onMountGear(PlayerInteractEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        CustomMob customMob = this.service.find(event.getRightClicked().getUniqueId()).orElse(null);
+        if (customMob == null || !customMob.definition().mountable()) {
+            return;
+        }
+        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
+        if (isMountGear(item)) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
+                    "&cLa silla y la armadura de esta montura las pone su definicion."));
+        }
+    }
+
+    /**
+     * Quien abra el inventario de una montura con alforjas no puede tocar la silla ni la
+     * armadura: son los dos primeros huecos del inventario de un caballo.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onMountInventory(org.bukkit.event.inventory.InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof org.bukkit.entity.AbstractHorse horse)) {
+            return;
+        }
+        CustomMob customMob = this.service.find(horse.getUniqueId()).orElse(null);
+        if (customMob == null || !customMob.definition().mountable()) {
+            return;
+        }
+        if (event.getRawSlot() == 0 || event.getRawSlot() == 1) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** {@code true} si el objeto es silla o armadura de caballo. */
+    private static boolean isMountGear(ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return false;
+        }
+        return item.getType() == org.bukkit.Material.SADDLE
+                || item.getType().name().endsWith("_HORSE_ARMOR");
+    }
+
     /** Con el libro en la mano apuntando a un mob, tambien se abre. */
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {

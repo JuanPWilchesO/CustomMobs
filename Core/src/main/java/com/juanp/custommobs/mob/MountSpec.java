@@ -2,6 +2,8 @@ package com.juanp.custommobs.mob;
 
 import org.bukkit.Material;
 
+import java.util.List;
+
 /**
  * Como se prepara una montura al aparecer.
  *
@@ -13,15 +15,18 @@ import org.bukkit.Material;
  * @param saddled si aparece con silla puesta
  * @param tamed   si aparece domesticada; sin esto el jugador no puede montarla
  * @param armor   material de la armadura de caballo, o {@code null}
+ * @param effects efectos constantes que reparte la montura mientras vive
  */
 public record MountSpec(
         String color,
         String style,
         boolean saddled,
         boolean tamed,
-        Material armor
+        Material armor,
+        List<MountEffect> effects
 ) {
 
     /** Lo que se aplica si el mob declara la categoria sin seccion {@code mount:}. */
-    public static final MountSpec DEFAULT = new MountSpec(null, null, true, true, null);
+    public static final MountSpec DEFAULT =
+            new MountSpec(null, null, true, true, null, List.of());
 }

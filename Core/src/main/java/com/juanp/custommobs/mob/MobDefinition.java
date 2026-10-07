@@ -94,4 +94,9 @@ public record MobDefinition(
     public boolean mountable() {
         return this.category == MobCategory.MOUNT;
     }
+
+    /** Efectos constantes de la montura; vacio si no es montura o no tiene. */
+    public List<MountEffect> mountEffects() {
+        return this.mount == null ? List.of() : this.mount.effects();
+    }
 }

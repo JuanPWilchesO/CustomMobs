@@ -338,7 +338,29 @@ public final class MobLoader {
                 trimOrNull(section.getString("style")),
                 section.getBoolean("saddled", true),
                 section.getBoolean("tamed", true),
-                Material.matchMaterial(section.getString("armor", "")));
+                Material.matchMaterial(section.getString("armor", "")),
+                parseMountEffects(section));
+    }
+
+    /** Los efectos constantes que reparte la montura: al mob, al jinete o a quien este cerca. */
+    private static List<MountEffect> parseMountEffects(ConfigurationSection section) {
+        List<Map<?, ?>> raw = section.getMapList("effects");
+        if (raw.isEmpty()) {
+            return List.of();
+        }
+        List<MountEffect> effects = new ArrayList<>();
+        for (Map<?, ?> entry : raw) {
+            String potion = trimOrNull(asString(entry.get("potion")));
+            if (potion == null) {
+                continue;
+            }
+            effects.add(new MountEffect(
+                    potion,
+                    trimOrNull(asString(entry.get("to"))),
+                    (int) Math.max(0L, Math.round(asNumber(entry.get("amplifier"), 0.0D))),
+                    Math.max(0.0D, asNumber(entry.get("radius"), 8.0D))));
+        }
+        return List.copyOf(effects);
     }
 
     /** Texto sin espacios sobrantes; {@code null} si no dice nada. */

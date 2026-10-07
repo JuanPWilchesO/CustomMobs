@@ -149,23 +149,44 @@ public final class MobService implements Listener {
     }
 
     /**
-     * Mobs de jugador desplegados de un tipo de ancla concreto.
-     *
-     * <p>Las dos cuentas —anclados al dueno y anclados a un bloque— son independientes:
-     * llenar una no consume la otra.
+     * Cuenta de cupo a la que pertenece un mob de jugador. Son <b>tres cuentas
+     * independientes</b>: llenar una no consume las otras.
      */
-    public int countPlayerMobs(UUID ownerId, boolean pointAnchored) {
+    public enum Account {
+        /** Sigue al dueno. */
+        OWNER,
+        /** Fijo a un bloque. */
+        POINT,
+        /** Montura. */
+        MOUNT
+    }
+
+    /** Cuenta de cupo a la que va esa definicion. */
+    public static Account accountOf(MobDefinition definition) {
+        if (definition.mountable()) {
+            return Account.MOUNT;
+        }
+        return definition.leash().anchoredToPoint() ? Account.POINT : Account.OWNER;
+    }
+
+    /** Mobs desplegados de una cuenta concreta. */
+    public int countPlayerMobs(UUID ownerId, Account account) {
         int count = 0;
         for (PlayerMobRegistry.MobLink link : this.playerMobs.all()) {
             if (ownerId == null || !link.deployed() || !ownerId.equals(link.owner())) {
                 continue;
             }
             MobDefinition definition = this.registry.get(link.definitionId()).orElse(null);
-            if (definition != null && definition.leash().anchoredToPoint() == pointAnchored) {
+            if (definition != null && accountOf(definition) == account) {
                 count++;
             }
         }
         return count;
+    }
+
+    /** Atajo para las dos cuentas de siempre: al dueno o a un bloque. */
+    public int countPlayerMobs(UUID ownerId, boolean pointAnchored) {
+        return this.countPlayerMobs(ownerId, pointAnchored ? Account.POINT : Account.OWNER);
     }
 
     /**
@@ -204,42 +225,62 @@ public final class MobService implements Listener {
      * se pudieron leer sus grupos, se usa el cupo por defecto.
      */
     public int limitOf(UUID ownerId) {
-        int best = -1;
-        if (ownerId != null) {
-            for (String group : this.groupLink.groupsOf(ownerId)) {
-                Integer limit = this.config.groupLimits().get(group);
-                if (limit != null && limit > best) {
-                    best = limit;
-                }
-            }
-        }
-        return best >= 0 ? best : this.config.defaultPlayerMobs();
+        return this.limitOf(ownerId, Account.OWNER);
     }
 
     /** Cupo de mobs anclados a un bloque, segun el grupo de LuckPerms. */
     public int pointLimitOf(UUID ownerId) {
+        return this.limitOf(ownerId, Account.POINT);
+    }
+
+    /** Cupo de monturas, segun el grupo de LuckPerms. */
+    public int mountLimitOf(UUID ownerId) {
+        return this.limitOf(ownerId, Account.MOUNT);
+    }
+
+    /** Cupo de una cuenta: el del grupo mas alto que tenga mapeado, o el de por defecto. */
+    public int limitOf(UUID ownerId, Account account) {
+        Map<String, Integer> byGroup = switch (account) {
+            case MOUNT -> this.config.mountGroupLimits();
+            case POINT -> this.config.pointGroupLimits();
+            case OWNER -> this.config.groupLimits();
+        };
+        int fallback = switch (account) {
+            case MOUNT -> this.config.defaultMountMobs();
+            case POINT -> this.config.defaultPointMobs();
+            case OWNER -> this.config.defaultPlayerMobs();
+        };
         int best = -1;
         if (ownerId != null) {
             for (String group : this.groupLink.groupsOf(ownerId)) {
-                Integer limit = this.config.pointGroupLimits().get(group);
+                Integer limit = byGroup.get(group);
                 if (limit != null && limit > best) {
                     best = limit;
                 }
             }
         }
-        return best >= 0 ? best : this.config.defaultPointMobs();
+        return best >= 0 ? best : fallback;
+    }
+
+    /** {@code true} si el jugador ya alcanzo su maximo en esa cuenta. */
+    public boolean atLimit(UUID ownerId, Account account) {
+        int max = this.limitOf(ownerId, account);
+        return max > 0 && this.countPlayerMobs(ownerId, account) >= max;
     }
 
     /** {@code true} si el jugador ya alcanzo su maximo de mobs anclados al dueno. */
     public boolean atPlayerLimit(UUID ownerId) {
-        int max = this.limitOf(ownerId);
-        return max > 0 && this.countPlayerMobs(ownerId, false) >= max;
+        return this.atLimit(ownerId, Account.OWNER);
     }
 
     /** {@code true} si el jugador ya alcanzo su maximo de mobs anclados a un bloque. */
     public boolean atPointLimit(UUID ownerId) {
-        int max = this.pointLimitOf(ownerId);
-        return max > 0 && this.countPlayerMobs(ownerId, true) >= max;
+        return this.atLimit(ownerId, Account.POINT);
+    }
+
+    /** {@code true} si el jugador ya alcanzo su maximo de monturas. */
+    public boolean atMountLimit(UUID ownerId) {
+        return this.atLimit(ownerId, Account.MOUNT);
     }
 
     /** Resultado de vaciar el cupo de un jugador. */
@@ -317,10 +358,15 @@ public final class MobService implements Listener {
         return this.remainingPlayerMobs(ownerId, false);
     }
 
-    /** Cupo restante de un tipo de ancla; {@code -1} si no hay limite configurado. */
+    /** Cupo restante de una cuenta; {@code -1} si no hay limite configurado. */
+    public int remainingPlayerMobs(UUID ownerId, Account account) {
+        int max = this.limitOf(ownerId, account);
+        return max <= 0 ? -1 : Math.max(0, max - this.countPlayerMobs(ownerId, account));
+    }
+
+    /** Cupo restante de las dos cuentas de siempre; {@code -1} si no hay limite. */
     public int remainingPlayerMobs(UUID ownerId, boolean pointAnchored) {
-        int max = pointAnchored ? this.pointLimitOf(ownerId) : this.limitOf(ownerId);
-        return max <= 0 ? -1 : Math.max(0, max - this.countPlayerMobs(ownerId, pointAnchored));
+        return this.remainingPlayerMobs(ownerId, pointAnchored ? Account.POINT : Account.OWNER);
     }
 
     public Optional<CustomMob> find(UUID entityId) {
@@ -360,9 +406,7 @@ public final class MobService implements Listener {
     public Optional<PlayerMobRegistry.MobLink> deploy(MobDefinition definition, Location location,
                                                      Player owner, UUID linkId) {
         if (owner == null || definition.server() || !this.worldEnabled(location.getWorld())
-                || (definition.leash().anchoredToPoint()
-                        ? this.atPointLimit(owner.getUniqueId())
-                        : this.atPlayerLimit(owner.getUniqueId()))) {
+                || this.atLimit(owner.getUniqueId(), accountOf(definition))) {
             return Optional.empty();
         }
         PlayerMobRegistry.MobLink link = linkId == null ? null

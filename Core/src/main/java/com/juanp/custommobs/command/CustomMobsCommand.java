@@ -260,6 +260,11 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
                 + (maxOwner > 0 ? " de " + maxOwner : " (sin limite)"));
         sender.sendMessage(" - Fijos a un bloque: " + usedPoint
                 + (maxPoint > 0 ? " de " + maxPoint : " (sin limite)"));
+        int maxMount = this.plugin.mobs().mountLimitOf(ownerId);
+        int usedMount = this.plugin.mobs().countPlayerMobs(ownerId,
+                com.juanp.custommobs.mob.MobService.Account.MOUNT);
+        sender.sendMessage(" - Monturas: " + usedMount
+                + (maxMount > 0 ? " de " + maxMount : " (sin limite)"));
         int loaded = 0;
         for (CustomMob customMob : this.plugin.mobs().active()) {
             if (!ownerId.equals(customMob.ownerId())) {

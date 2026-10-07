@@ -27,8 +27,10 @@ import java.util.Map;
  * @param adminPermission     permiso para los comandos de administracion
  * @param defaultPlayerMobs   cupo de mobs anclados al dueno; {@code 0} = sin limite
  * @param defaultPointMobs    cupo de mobs anclados a un bloque; {@code 0} = sin limite
+ * @param defaultMountMobs    cupo de monturas; {@code 0} = sin limite
  * @param groupLimits         cupo por grupo de LuckPerms, con las claves en minusculas
  * @param pointGroupLimits    cupo por grupo para los mobs anclados a un bloque
+ * @param mountGroupLimits    cupo por grupo para las monturas
  * @param pointChunkRadius    radio en chunks que se mantiene cargado alrededor del bloque
  * @param bookMaterial        material del libro de inspeccion
  * @param bookName            nombre del libro, con color ya traducido
@@ -54,8 +56,10 @@ public record PluginConfig(
         String adminPermission,
         int defaultPlayerMobs,
         int defaultPointMobs,
+        int defaultMountMobs,
         Map<String, Integer> groupLimits,
         Map<String, Integer> pointGroupLimits,
+        Map<String, Integer> mountGroupLimits,
         int pointChunkRadius,
         org.bukkit.Material bookMaterial,
         String bookName,
@@ -93,8 +97,10 @@ public record PluginConfig(
                 // anterior no debe quedarse sin tope por no tener la clave.
                 Math.max(0, cfg.getInt("limits.default-player-mobs", 3)),
                 Math.max(0, cfg.getInt("limits.default-point-mobs", 1)),
+                Math.max(0, cfg.getInt("limits.default-mount-mobs", 1)),
                 readGroupLimits(cfg, "limits.groups"),
                 readGroupLimits(cfg, "limits.point-groups"),
+                readGroupLimits(cfg, "limits.mount-groups"),
                 Math.max(0, cfg.getInt("point.chunk-radius", 4)),
                 bookMaterial(cfg),
                 Texts.color(cfg.getString("book.display-name", "&6Libro de mobs")),

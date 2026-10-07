@@ -31,6 +31,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import com.juanp.custommobs.mob.DaylightListener;
 import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
+import com.juanp.custommobs.mob.MountEffectTask;
 import com.juanp.custommobs.recall.RecallService;
 import com.juanp.custommobs.skill.SkillInteractListener;
 import com.juanp.custommobs.skill.SkillService;
@@ -85,6 +86,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private TargetingTask targetingTask;
     private RecallService recallService;
     private AnchorChunkService anchorChunks;
+    private MountEffectTask mountEffects;
     private UpgradeRegistry upgrades;
     private UpgradeService upgradeService;
     private MobBookService book;
@@ -182,6 +184,10 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.anchorChunks = new AnchorChunkService(this, this.mobService, this.config);
         this.anchorChunks.runTaskTimer(this, 100L, 100L);
 
+        // Efectos constantes de las monturas: al mob, al jinete o a quien pase cerca.
+        this.mountEffects = new MountEffectTask(this, this.mobService);
+        this.mountEffects.runTaskTimer(this, 20L, 20L);
+
         this.ambientTask = new AmbientTask(this.soundService);
         this.ambientTask.runTaskTimer(this, 20L, 20L);
 
@@ -229,6 +235,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
         if (this.anchorChunks != null) {
             this.anchorChunks.cancel();
             this.anchorChunks.shutdown();
+        }
+        if (this.mountEffects != null) {
+            this.mountEffects.cancel();
         }
         if (this.ambientTask != null) {
             this.ambientTask.cancel();

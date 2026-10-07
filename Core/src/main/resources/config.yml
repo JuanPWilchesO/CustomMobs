@@ -79,6 +79,13 @@ limits:
     default: 1
     vip: 2
     staff: 3
+  # Cupo de MONTURAS. Tercera cuenta, tambien aparte de las dos anteriores.
+  default-mount-mobs: 1
+  # Cupo por grupo para las monturas. Mismas reglas que arriba.
+  mount-groups:
+    default: 1
+    vip: 2
+    staff: 3
 
 point:
   # Radio en chunks que se mantiene cargado alrededor del bloque de un mob anclado a
