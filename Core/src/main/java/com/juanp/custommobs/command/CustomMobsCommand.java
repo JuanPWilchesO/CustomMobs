@@ -556,14 +556,9 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             return;
         }
         String id = args[1].toLowerCase(Locale.ROOT);
-        int killed = 0;
-        for (CustomMob customMob : this.plugin.mobs().active()) {
-            if (!customMob.definition().id().equals(id)) {
-                continue;
-            }
-            customMob.entity().setHealth(0.0D);
-            killed++;
-        }
+        // Alcanza tambien los que esten en chunks descargadas: el vinculo guarda donde se
+        // les vio, asi que se carga su chunk un momento y se les mata.
+        int killed = this.plugin.mobs().killDefinition(id);
         sender.sendMessage(TAG + " Eliminados " + killed + " mobs de '" + id + "'.");
     }
 

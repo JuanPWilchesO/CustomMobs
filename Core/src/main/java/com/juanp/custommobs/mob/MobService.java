@@ -31,6 +31,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ArmoredHorseInventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import org.bukkit.event.Listener;
@@ -401,6 +402,73 @@ public final class MobService implements Listener {
     /** Cupo restante de las dos cuentas de siempre; {@code -1} si no hay limite. */
     public int remainingPlayerMobs(UUID ownerId, boolean pointAnchored) {
         return this.remainingPlayerMobs(ownerId, pointAnchored ? Account.POINT : Account.OWNER);
+    }
+
+    /**
+     * Trae la entidad de un vinculo aunque su chunk este descargada.
+     *
+     * <p>Se pide un ticket en su ultima posicion conocida, se busca la entidad y se suelta
+     * el ticket. Sin esto, un mob que quedo en una chunk descargada no lo alcanza ningun
+     * comando: no se le ve, no se le mata, y sin embargo sigue ocupando cupo. El vinculo ya
+     * guardaba donde se le vio; esto es usarlo.
+     */
+    public Optional<LivingEntity> reach(UUID linkId) {
+        PlayerMobRegistry.MobLink link = this.playerMobs.byLink(linkId).orElse(null);
+        if (link == null || !link.deployed()) {
+            return Optional.empty();
+        }
+        LivingEntity loaded = this.active.containsKey(link.entityId())
+                ? this.active.get(link.entityId()).entity() : null;
+        if (loaded != null && loaded.isValid()) {
+            return Optional.of(loaded);
+        }
+        Location point = link.location();
+        if (point == null) {
+            return Optional.empty();
+        }
+        World world = point.getWorld();
+        int chunkX = point.getBlockX() >> 4;
+        int chunkZ = point.getBlockZ() >> 4;
+        world.addPluginChunkTicket(chunkX, chunkZ, this.plugin);
+        try {
+            Entity entity = Bukkit.getEntity(link.entityId());
+            return entity instanceof LivingEntity living && living.isValid()
+                    ? Optional.of(living) : Optional.empty();
+        } finally {
+            world.removePluginChunkTicket(chunkX, chunkZ, this.plugin);
+        }
+    }
+
+    /**
+     * Mata todos los mobs de una definicion, tambien los que estan en chunks descargadas.
+     *
+     * <p>Los de una chunk descargada se alcanzan por su vinculo: se carga su chunk un
+     * momento, se les mata y se suelta. Es lo que permite limpiar un mob perdido sin saber
+     * donde esta ni tener que ir a buscarlo.
+     */
+    public int killDefinition(String definitionId) {
+        int killed = 0;
+        Set<UUID> seen = new HashSet<>();
+        for (CustomMob customMob : this.active()) {
+            if (!customMob.definition().id().equals(definitionId)) {
+                continue;
+            }
+            seen.add(customMob.entity().getUniqueId());
+            customMob.entity().setHealth(0.0D);
+            killed++;
+        }
+        for (PlayerMobRegistry.MobLink link : this.playerMobs.all()) {
+            if (!link.deployed() || !link.definitionId().equals(definitionId)
+                    || seen.contains(link.entityId())) {
+                continue;
+            }
+            LivingEntity reached = this.reach(link.linkId()).orElse(null);
+            if (reached != null) {
+                reached.setHealth(0.0D);
+                killed++;
+            }
+        }
+        return killed;
     }
 
     public Optional<CustomMob> find(UUID entityId) {
