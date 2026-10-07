@@ -115,9 +115,14 @@ public final class SkillService extends BukkitRunnable {
         List<LivingEntity> found = new ArrayList<>();
         switch (skill.target()) {
             case SELF -> found.add(entity);
-            case OWNER -> this.ownerOf(customMob).ifPresent(found::add);
+            // El radio manda tambien para el dueno y para el objetivo atacado. Sin esto, una
+            // skill de montura le seguia curando al dueno desde el otro lado del mundo.
+            case OWNER -> this.ownerOf(customMob)
+                    .filter(owner -> this.inRange(entity, owner, skill.range()))
+                    .ifPresent(found::add);
             case TARGET -> {
-                if (entity instanceof Mob mob && mob.getTarget() != null) {
+                if (entity instanceof Mob mob && mob.getTarget() != null
+                        && this.inRange(entity, mob.getTarget(), skill.range())) {
                     found.add(mob.getTarget());
                 }
             }
@@ -247,6 +252,22 @@ public final class SkillService extends BukkitRunnable {
             return Optional.empty();
         }
         return Optional.of(owner);
+    }
+
+    /**
+     * {@code true} si el objetivo esta dentro del radio de la skill.
+     *
+     * <p>Un radio de 0 o menos significa "sin limite": asi se comportaban antes las skills
+     * de dueno y objetivo, de modo que una definicion que no diga radio no cambia.
+     */
+    private boolean inRange(LivingEntity source, LivingEntity target, double range) {
+        if (range <= 0.0D) {
+            return true;
+        }
+        if (!source.getWorld().equals(target.getWorld())) {
+            return false;
+        }
+        return source.getLocation().distanceSquared(target.getLocation()) <= range * range;
     }
 
     private List<LivingEntity> nearby(LivingEntity entity, double range) {
