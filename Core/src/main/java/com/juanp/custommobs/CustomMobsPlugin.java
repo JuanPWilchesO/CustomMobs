@@ -1,6 +1,10 @@
 package com.juanp.custommobs;
 
 import com.juanp.custommobs.anchor.AnchorChunkService;
+import com.juanp.custommobs.book.MobBookService;
+import com.juanp.custommobs.upgrade.MobItemListener;
+import com.juanp.custommobs.upgrade.UpgradeRegistry;
+import com.juanp.custommobs.upgrade.UpgradeService;
 import com.juanp.custommobs.api.CustomMobsApi;
 import com.juanp.custommobs.combat.AggroListener;
 import com.juanp.custommobs.combat.TargetListener;
@@ -81,6 +85,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private TargetingTask targetingTask;
     private RecallService recallService;
     private AnchorChunkService anchorChunks;
+    private UpgradeRegistry upgrades;
+    private UpgradeService upgradeService;
+    private MobBookService book;
     private CustomMobsApiImpl api;
 
     @Override
@@ -128,6 +135,13 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.craftService = new CraftService(this, this.registry, this.mobService.keys());
         this.craftService.registerAll();
 
+        // Items de mejora y libro de inspeccion: se crean antes de los listeners que los usan.
+        this.upgrades = new UpgradeRegistry(this);
+        this.upgrades.reload();
+        this.upgradeService = new UpgradeService(this, this.upgrades, this.mobService.keys());
+        this.book = new MobBookService(this, this.mobService, this.mobService.keys());
+        this.upgradeService.registerRecipes(this.craftService);
+
         // Se crea aqui, y no mas abajo, porque el listener del clic derecho lo necesita.
         this.skillService = new SkillService(this.mobService);
 
@@ -145,6 +159,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
         pluginManager.registerEvents(new DropListener(this.mobService, this.dropService), this);
         pluginManager.registerEvents(new MotdListener(this), this);
         pluginManager.registerEvents(new SkillInteractListener(this.craftService, this.mobService, this.skillService), this);
+        pluginManager.registerEvents(new MobItemListener(this, this.mobService, this.upgradeService, this.book), this);
 
         PluginCommand command = this.getCommand("custommobs");
         if (command != null) {
@@ -237,6 +252,10 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.registry.reload();
         this.factions.reload(this);
         this.craftService.registerAll();
+        if (this.upgrades != null) {
+            this.upgrades.reload();
+            this.upgradeService.registerRecipes(this.craftService);
+        }
         if (this.mobService != null) {
             this.mobService.playerMobs().load();
         }
@@ -288,6 +307,21 @@ public final class CustomMobsPlugin extends JavaPlugin {
 
     public SpawnerRegistry spawners() {
         return this.spawners;
+    }
+
+    /** Catalogo de items de mejora. */
+    public UpgradeRegistry upgrades() {
+        return this.upgrades;
+    }
+
+    /** Construccion y aplicacion de los items de mejora. */
+    public UpgradeService upgradeService() {
+        return this.upgradeService;
+    }
+
+    /** Libro de inspeccion. */
+    public MobBookService book() {
+        return this.book;
     }
 
     public CustomMobsApi api() {

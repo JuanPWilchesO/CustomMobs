@@ -14,7 +14,10 @@ import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -96,6 +99,44 @@ public final class CraftService {
             this.plugin.getLogger().warning("No se pudo registrar la receta de '"
                     + definition.id() + "': " + throwable.getMessage());
         }
+    }
+
+    /**
+     * Registra una receta sin forma cualquiera, comprobando que sus ingredientes no esten
+     * ya usados por otra. Lo usan tambien los items de mejora, para no chocar con los
+     * huevos ni entre ellos: dos recetas iguales son indistinguibles para el cliente.
+     *
+     * @return {@code false} si esos ingredientes ya estaban ocupados
+     */
+    public boolean registerShapeless(NamespacedKey key, ItemStack result, List<Material> ingredients) {
+        String signature = signatureOf(ingredients);
+        if (!this.ingredientPairs.add(signature)) {
+            return false;
+        }
+        ShapelessRecipe recipe = new ShapelessRecipe(key, result);
+        for (Material material : ingredients) {
+            recipe.addIngredient(new RecipeChoice.MaterialChoice(material));
+        }
+        try {
+            Bukkit.addRecipe(recipe);
+            this.recipeKeys.add(key.toString());
+            return true;
+        } catch (Throwable throwable) {
+            this.ingredientPairs.remove(signature);
+            this.plugin.getLogger().warning("No se pudo registrar la receta '" + key + "': "
+                    + throwable.getMessage());
+            return false;
+        }
+    }
+
+    /** Firma de una lista de ingredientes, sin importar el orden. */
+    public static String signatureOf(List<Material> ingredients) {
+        List<String> parts = new ArrayList<>(ingredients.size());
+        for (Material material : ingredients) {
+            parts.add(material.name());
+        }
+        Collections.sort(parts);
+        return String.join("+", parts);
     }
 
     /** Construye el huevo custom: el huevo base marcado con el id de la definicion. */

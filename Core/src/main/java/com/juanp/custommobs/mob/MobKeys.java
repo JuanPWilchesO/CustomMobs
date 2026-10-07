@@ -11,6 +11,8 @@ public final class MobKeys {
     private final NamespacedKey team;
     private final NamespacedKey link;
     private final NamespacedKey spawner;
+    private final NamespacedKey upgrade;
+    private final NamespacedKey book;
     private final NamespacedKey spawnWorld;
     private final NamespacedKey spawnX;
     private final NamespacedKey spawnY;
@@ -22,6 +24,8 @@ public final class MobKeys {
         this.team = new NamespacedKey(plugin, "team");
         this.link = new NamespacedKey(plugin, "link");
         this.spawner = new NamespacedKey(plugin, "spawner");
+        this.upgrade = new NamespacedKey(plugin, "upgrade");
+        this.book = new NamespacedKey(plugin, "book");
         this.spawnWorld = new NamespacedKey(plugin, "spawn_world");
         this.spawnX = new NamespacedKey(plugin, "spawn_x");
         this.spawnY = new NamespacedKey(plugin, "spawn_y");
@@ -47,6 +51,16 @@ public final class MobKeys {
 
     public NamespacedKey spawner() {
         return this.spawner;
+    }
+
+    /** Marca del item de mejora: guarda su id. */
+    public NamespacedKey upgrade() {
+        return this.upgrade;
+    }
+
+    /** Marca del libro de inspeccion. */
+    public NamespacedKey book() {
+        return this.book;
     }
 
     public NamespacedKey spawnWorld() {

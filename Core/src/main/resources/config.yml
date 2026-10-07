@@ -87,6 +87,16 @@ point:
   # por mob. 0 = desactivado.
   chunk-radius: 4
 
+book:
+  # Libro de inspeccion: muestra al jugador SUS mobs con sus estadisticas de combate.
+  # Solo lo reparte un administrador (/custommobs book), pero cualquier jugador puede
+  # usarlo, para que el servidor lo venda o lo regale desde su economia.
+  material: WRITTEN_BOOK
+  display-name: '&6Libro de mobs'
+  lore:
+    - '&7Muestra tus mobs y sus estadisticas.'
+    - '&7Clic derecho para abrirlo.'
+
 worlds:
   # Mundos donde funciona el plugin. Vacio = todos.
   # Los nombres son los de Bukkit, asi que sirve cualquiera, incluidos los de

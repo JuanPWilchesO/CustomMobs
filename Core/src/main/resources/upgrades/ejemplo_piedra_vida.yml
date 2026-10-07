@@ -1,0 +1,32 @@
+# =============================================================================
+# Item de mejora — EJEMPLO
+# -----------------------------------------------------------------------------
+# Sirve para subir caracteristicas de COMBATE de un mob propio: el jugador lo
+# sostiene y hace CLIC DERECHO sobre su mob. El item se consume.
+#
+# Claves admitidas en 'stats' (solo combate): health, damage, speed, armor,
+# armor-toughness, knockback-resistance, attack-speed, attack-knockback.
+# El valor es CUANTO SUBE, no el valor final.
+#
+# El crafteo es sin forma. 'amount: 0' lo desactiva y entonces solo se reparte
+# con /custommobs upgrade give. Los ingredientes extra se suman al material.
+#
+# Repartir:  /custommobs upgrade give piedra_vida [jugador]
+# =============================================================================
+
+id: piedra_vida
+material: AMETHYST_SHARD
+display-name: '&dPiedra de vida'
+lore:
+  - '&7Se la das a un mob tuyo'
+  - '&7para subirle la vida maxima.'
+
+stats:
+  health: 20.0
+
+recipe:
+  # Pon 1 o mas para poder craftearlo; 0 lo deja solo por comando.
+  amount: 0
+  extras:
+    - DIAMOND
+    - DIAMOND

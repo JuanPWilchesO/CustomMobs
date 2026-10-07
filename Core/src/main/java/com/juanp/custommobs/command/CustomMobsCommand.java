@@ -86,6 +86,8 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             case "enchants" -> this.enchants(sender, args);
             case "item" -> this.item(sender, args);
             case "spawner" -> this.spawner(sender, args);
+            case "book", "libro" -> this.book(sender, args);
+            case "upgrade", "mejora" -> this.upgrade(sender, args);
             case "color" -> this.setStyle(sender, args, "name");
             case "glow" -> this.setStyle(sender, args, "glow");
             default -> this.help(sender);
@@ -403,6 +405,85 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         return names;
     }
 
+    /** Entrega el libro de inspeccion. Repartirlo es tarea de administracion. */
+    private void book(CommandSender sender, String[] args) {
+        Player target = this.targetPlayer(sender, args, 1);
+        if (target == null) {
+            return;
+        }
+        this.deliver(target, this.plugin.book().create());
+        sender.sendMessage(TAG + " Libro entregado a " + target.getName() + ".");
+        if (!sender.equals(target)) {
+            target.sendMessage(TAG + " Has recibido el libro de mobs.");
+        }
+    }
+
+    /** Items de mejora: verlos, repartirlos y releerlos. */
+    private void upgrade(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(TAG + " Uso: /custommobs upgrade list | give <id> [jugador] | reload");
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "list" -> {
+                sender.sendMessage(TAG + " Items de mejora (" + this.plugin.upgrades().size() + "):");
+                for (var spec : this.plugin.upgrades().all()) {
+                    sender.sendMessage(" - " + spec.id() + " (" + spec.material().name() + ")"
+                            + (spec.craftable() ? " [crafteable]" : " [solo por comando]")
+                            + " | " + com.juanp.custommobs.upgrade.UpgradeService.describe(spec));
+                }
+            }
+            case "give" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(TAG + " Uso: /custommobs upgrade give <id> [jugador]");
+                    return;
+                }
+                var spec = this.plugin.upgrades().get(args[2]).orElse(null);
+                if (spec == null) {
+                    sender.sendMessage(TAG + " No hay ningun item de mejora con ese id;"
+                            + " miralos con '/custommobs upgrade list'.");
+                    return;
+                }
+                Player target = this.targetPlayer(sender, args, 3);
+                if (target == null) {
+                    return;
+                }
+                this.deliver(target, this.plugin.upgradeService().create(spec));
+                sender.sendMessage(TAG + " '" + spec.id() + "' entregado a " + target.getName() + ".");
+            }
+            case "reload" -> {
+                this.plugin.upgrades().reload();
+                this.plugin.upgradeService().registerRecipes(this.plugin.craft());
+                sender.sendMessage(TAG + " Items de mejora recargados: "
+                        + this.plugin.upgrades().size() + ".");
+            }
+            default -> sender.sendMessage(TAG + " Uso: /custommobs upgrade list | give <id> [jugador] | reload");
+        }
+    }
+
+    /** Jugador objetivo: el que se nombra, o quien escribe si no se nombra. */
+    private Player targetPlayer(CommandSender sender, String[] args, int index) {
+        if (args.length > index) {
+            Player named = this.plugin.getServer().getPlayerExact(args[index]);
+            if (named == null) {
+                sender.sendMessage(TAG + " Jugador no encontrado: " + args[index]);
+            }
+            return named;
+        }
+        if (sender instanceof Player player) {
+            return player;
+        }
+        sender.sendMessage(TAG + " Desde consola hace falta decir el jugador.");
+        return null;
+    }
+
+    /** Deja el objeto en el inventario; si no cabe, lo suelta en el suelo. */
+    private void deliver(Player player, ItemStack item) {
+        for (ItemStack rest : player.getInventory().addItem(item).values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), rest);
+        }
+    }
+
     /** Id desde texto; {@code null} si no es un UUID valido. */
     private static UUID parseUuid(String raw) {
         try {
@@ -614,6 +695,8 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(TAG + "           | item save <nombre> | item list | item remove <nombre>  (catalogo de items)");
         sender.sendMessage(TAG + "           | color <color|nada> | glow <color|nada>  (tus player mobs)");
         sender.sendMessage(TAG + "           | spawner list | spawner remove <id> | spawner removeall [mob] | spawner reload");
+        sender.sendMessage(TAG + "           | book [jugador]  (libro de inspeccion)");
+        sender.sendMessage(TAG + "           | upgrade list | upgrade give <id> [jugador] | upgrade reload");
     }
 
     @Override
@@ -627,7 +710,7 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             List<String> options = admin
                     ? List.of("reload", "list", "give", "spawn", "remove", "active", "kill",
-                            "enchants", "cuota", "item", "color", "glow", "spawner")
+                            "enchants", "cuota", "item", "color", "glow", "spawner", "book", "upgrade")
                     : List.of("cuota", "color", "glow");
             for (String option : options) {
                 if (option.startsWith(args[0].toLowerCase(Locale.ROOT))) {
@@ -647,6 +730,23 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
         }
         // De aqui para abajo, todo es administracion: sin permiso, no se completa nada.
         if (!admin) {
+            return out;
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("upgrade") || args[0].equalsIgnoreCase("mejora"))) {
+            for (String option : List.of("list", "give", "reload")) {
+                if (option.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    out.add(option);
+                }
+            }
+            return out;
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("upgrade") || args[0].equalsIgnoreCase("mejora"))
+                && args[1].equalsIgnoreCase("give")) {
+            for (var spec : this.plugin.upgrades().all()) {
+                if (spec.id().startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                    out.add(spec.id());
+                }
+            }
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("spawner")) {

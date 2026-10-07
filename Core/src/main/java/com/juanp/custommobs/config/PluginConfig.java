@@ -30,6 +30,9 @@ import java.util.Map;
  * @param groupLimits         cupo por grupo de LuckPerms, con las claves en minusculas
  * @param pointGroupLimits    cupo por grupo para los mobs anclados a un bloque
  * @param pointChunkRadius    radio en chunks que se mantiene cargado alrededor del bloque
+ * @param bookMaterial        material del libro de inspeccion
+ * @param bookName            nombre del libro, con color ya traducido
+ * @param bookLore            lore del libro, con color ya traducido
  * @param motdEnabled         si el MOTD se manda al entrar
  * @param motd                lineas del MOTD, ya con los codigos de color traducidos
  * @param enabledWorlds       mundos donde funciona el plugin, en minusculas; vacio = todos
@@ -54,6 +57,9 @@ public record PluginConfig(
         Map<String, Integer> groupLimits,
         Map<String, Integer> pointGroupLimits,
         int pointChunkRadius,
+        org.bukkit.Material bookMaterial,
+        String bookName,
+        List<String> bookLore,
         boolean motdEnabled,
         List<String> motd,
         List<String> enabledWorlds,
@@ -90,6 +96,9 @@ public record PluginConfig(
                 readGroupLimits(cfg, "limits.groups"),
                 readGroupLimits(cfg, "limits.point-groups"),
                 Math.max(0, cfg.getInt("point.chunk-radius", 4)),
+                bookMaterial(cfg),
+                Texts.color(cfg.getString("book.display-name", "&6Libro de mobs")),
+                colorList(cfg.getStringList("book.lore")),
                 cfg.getBoolean("branding.motd-enabled", true),
                 motdOf(cfg),
                 lowerList(cfg.getStringList("worlds.enabled")),
@@ -137,6 +146,12 @@ public record PluginConfig(
             lines.add(Texts.color(line));
         }
         return List.copyOf(lines);
+    }
+
+    /** Material del libro; si el yml trae uno invalido, se cae al libro escrito. */
+    private static org.bukkit.Material bookMaterial(FileConfiguration cfg) {
+        org.bukkit.Material material = org.bukkit.Material.matchMaterial(cfg.getString("book.material", ""));
+        return material == null || material.isAir() ? org.bukkit.Material.WRITTEN_BOOK : material;
     }
 
     /** Cupo por grupo. Las claves se guardan en minusculas para comparar sin sorpresas. */
