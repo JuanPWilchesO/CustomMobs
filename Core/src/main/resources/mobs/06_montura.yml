@@ -1,0 +1,45 @@
+# =============================================================================
+# 06 - Montura
+# -----------------------------------------------------------------------------
+# Una montura es un mob de JUGADOR que ademas se puede montar.
+#   - Se invoca con su huevo, tiene dueno y cuenta cupo, como cualquier otro.
+#   - Aparece DOMESTICADA, ENSILLADA y con dueno: el jugador se sube con clic
+#     derecho y no lo tira al suelo.
+#   - NO pelea: la lleva su jinete. Tampoco dispara skills de interaccion,
+#     porque en una montura el clic derecho sirve para montarse.
+#
+# Probar:   /custommobs give tutorial_montura
+# =============================================================================
+
+id: tutorial_montura
+category: mount
+display-name: '&6Caballo de guerra'
+type: HORSE
+egg: HORSE_SPAWN_EGG
+
+recipe:
+  extras:
+    - GOLDEN_APPLE
+  amount: 1
+
+attributes:
+  health: 40.0
+  speed: 0.3
+  jump-strength: 0.8
+
+# Solo para 'category: mount'. El mob tiene que ser un caballo o similar.
+mount:
+  color: BLACK          # color del caballo: WHITE, CREAMY, CHESTNUT, BROWN, BLACK...
+  style: WHITE_DOTS     # marcas: NONE, WHITE, WHITEFIELD, WHITE_DOTS, BLACK_DOTS
+  saddled: true
+  tamed: true
+  armor: IRON_HORSE_ARMOR
+
+leash:
+  anchor: owner
+  max-distance: 24.0
+  teleport-distance: 48.0
+
+lore:
+  - '&7Tu montura: subete con clic derecho.'
+  - '&7Aparece domesticada y ensillada.'

@@ -49,8 +49,8 @@ public final class MobLoader {
         }
 
         Material egg = parseEgg(cfg, type, category);
-        // Los mobs de jugador siempre se craftean desde un huevo; los de servidor pueden no tener.
-        if (category == MobCategory.PLAYER && egg == null) {
+        // Los mobs con dueno siempre se craftean desde un huevo; los de servidor pueden no tener.
+        if (category.owned() && egg == null) {
             return Optional.empty();
         }
 
@@ -114,6 +114,8 @@ public final class MobLoader {
             lore.add(Texts.color(line));
         }
 
+        MountSpec mount = parseMount(cfg.getConfigurationSection("mount"), category);
+
         return Optional.of(new MobDefinition(
                 id,
                 Texts.color(cfg.getString("display-name", id)),
@@ -137,7 +139,8 @@ public final class MobLoader {
                 skills,
                 drops,
                 cfg.getBoolean("clear-vanilla-drops", false),
-                chunkRadius(cfg)
+                chunkRadius(cfg),
+                mount
         ));
     }
 
@@ -150,7 +153,9 @@ public final class MobLoader {
         if (egg != null && egg.isItem()) {
             return egg;
         }
-        if (category != MobCategory.SERVER) {
+        // Los de jugador necesitan un huevo declarado; las monturas pueden caer al huevo
+        // natural de su tipo, como los de servidor.
+        if (category == MobCategory.PLAYER) {
             return null;
         }
         try {
@@ -312,6 +317,33 @@ public final class MobLoader {
             return null;
         }
         return Math.max(0, cfg.getInt("chunk-radius"));
+    }
+
+    /**
+     * Lee la seccion {@code mount} de una montura.
+     *
+     * <p>Sin seccion, una montura sale domesticada y ensillada, que es lo que hace falta
+     * para poder montarla. La seccion solo tiene sentido con {@code category: mount}; en
+     * cualquier otra categoria se ignora, porque el resto de mobs no se monta.
+     */
+    private static MountSpec parseMount(ConfigurationSection section, MobCategory category) {
+        if (!category.mountable()) {
+            return null;
+        }
+        if (section == null) {
+            return MountSpec.DEFAULT;
+        }
+        return new MountSpec(
+                trimOrNull(section.getString("color")),
+                trimOrNull(section.getString("style")),
+                section.getBoolean("saddled", true),
+                section.getBoolean("tamed", true),
+                Material.matchMaterial(section.getString("armor", "")));
+    }
+
+    /** Texto sin espacios sobrantes; {@code null} si no dice nada. */
+    private static String trimOrNull(String raw) {
+        return raw == null || raw.isBlank() ? null : raw.trim();
     }
 
     private static String asString(Object value) {

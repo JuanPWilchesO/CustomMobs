@@ -1,0 +1,27 @@
+package com.juanp.custommobs.mob;
+
+import org.bukkit.Material;
+
+/**
+ * Como se prepara una montura al aparecer.
+ *
+ * <p>Solo aplica a {@link MobCategory#MOUNT}. El mob tiene que ser un caballo o similar
+ * ({@code AbstractHorse}): caballo, burro, mula, caballo esqueleto, llama, camello.
+ *
+ * @param color   color del caballo ({@code Horse.Color}), o {@code null} para el de serie
+ * @param style   marcas del caballo ({@code Horse.Style}), o {@code null}
+ * @param saddled si aparece con silla puesta
+ * @param tamed   si aparece domesticada; sin esto el jugador no puede montarla
+ * @param armor   material de la armadura de caballo, o {@code null}
+ */
+public record MountSpec(
+        String color,
+        String style,
+        boolean saddled,
+        boolean tamed,
+        Material armor
+) {
+
+    /** Lo que se aplica si el mob declara la categoria sin seccion {@code mount:}. */
+    public static final MountSpec DEFAULT = new MountSpec(null, null, true, true, null);
+}

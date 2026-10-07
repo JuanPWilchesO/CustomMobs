@@ -34,6 +34,10 @@ public final class TargetingTask extends BukkitRunnable {
             }
             // El radio de separacion se aplica siempre, con goals o sin ellos.
             this.service.enforceLeash(customMob, mob);
+            // Una montura no pelea: la lleva su jinete.
+            if (customMob.definition().mountable()) {
+                continue;
+            }
             if (goals) {
                 continue;
             }

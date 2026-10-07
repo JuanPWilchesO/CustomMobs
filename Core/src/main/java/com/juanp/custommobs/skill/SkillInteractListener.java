@@ -41,6 +41,10 @@ public final class SkillInteractListener implements Listener {
             this.debug("Clic sobre " + clicked.getType() + ": no es un mob nuestro; se ignora.");
             return;
         }
+        // En una montura el clic derecho sirve para montarse: no se dispara dialogo.
+        if (customMob.definition().mountable()) {
+            return;
+        }
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
         if (this.craft.definitionOf(item).isPresent()) {

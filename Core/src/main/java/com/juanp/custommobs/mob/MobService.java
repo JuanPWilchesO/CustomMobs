@@ -18,13 +18,20 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Horse;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Raider;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.EntityTeleportEvent;
+import org.bukkit.Material;
+import org.bukkit.inventory.ArmoredHorseInventory;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.Locale;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -443,8 +450,13 @@ public final class MobService implements Listener {
         }
 
         this.applyAttributes(mob, definition);
-        EquipmentApplier.apply(mob, definition, this.plugin.drops().catalog(),
-                problem -> this.plugin.getLogger().warning(problem + " en " + definition.id()));
+        if (definition.mount() != null) {
+            // Una montura no lleva el equipo normal: lo suyo es la silla y la armadura.
+            this.configureMount(mob, definition.mount(), ownerId);
+        } else {
+            EquipmentApplier.apply(mob, definition, this.plugin.drops().catalog(),
+                    problem -> this.plugin.getLogger().warning(problem + " en " + definition.id()));
+        }
 
         // El mob aparece como dice la definicion y nada mas. El juego sortea rasgos
         // visibles al crear ciertas entidades —la bandera de jefe de patrulla, por
@@ -486,6 +498,66 @@ public final class MobService implements Listener {
         }
         if (spawnerId != null) {
             container.set(this.keys.spawner(), PersistentDataType.STRING, spawnerId.toString());
+        }
+    }
+
+    /**
+     * Deja la montura lista para montarse: domesticada, con dueno, silla y variante.
+     *
+     * <p>Sin esto el jugador no podria subirse: un caballo sin domesticar lo tira al
+     * suelo, y sin silla no acepta jinete.
+     */
+    private void configureMount(Mob mob, MountSpec spec, UUID ownerId) {
+        if (!(mob instanceof AbstractHorse horse)) {
+            // La categoria no encaja con el tipo: se ignora sin romper la aparicion.
+            return;
+        }
+        if (spec.tamed()) {
+            horse.setTamed(true);
+        }
+        if (ownerId != null) {
+            horse.setOwner(Bukkit.getOfflinePlayer(ownerId));
+        }
+        if (spec.saddled()) {
+            horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
+        }
+        if (horse instanceof Horse real) {
+            Horse.Color color = colorOf(spec.color());
+            if (color != null) {
+                real.setColor(color);
+            }
+            Horse.Style style = styleOf(spec.style());
+            if (style != null) {
+                real.setStyle(style);
+            }
+        }
+        if (spec.armor() != null
+                && horse.getInventory() instanceof ArmoredHorseInventory armored) {
+            armored.setArmor(new ItemStack(spec.armor()));
+        }
+    }
+
+    /** Variante de color del caballo, o {@code null} si el texto no vale. */
+    private static Horse.Color colorOf(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return Horse.Color.valueOf(raw.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    /** Marcas del caballo, o {@code null} si el texto no vale. */
+    private static Horse.Style styleOf(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return Horse.Style.valueOf(raw.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
         }
     }
 
@@ -556,7 +628,10 @@ public final class MobService implements Listener {
             if (!customMob.definition().usesAi() && entity instanceof Mob mob) {
                 mob.setAI(false);
             }
-            this.applyBehaviour(entity);
+            // Una montura no busca objetivos: la lleva su jinete.
+            if (!customMob.definition().mountable()) {
+                this.applyBehaviour(entity);
+            }
         });
     }
 

@@ -45,6 +45,8 @@ import java.util.Map;
  * @param clearVanillaDrops si {@code true}, el mob no suelta nada de lo vanilla: solo su tabla
  * @param chunkRadius      radio en chunks que se mantiene cargado alrededor de su bloque;
  *                         {@code null} = usar el valor global del config
+ * @param mount            como preparar la montura (solo {@code category: mount});
+ *                         {@code null} en cualquier otro caso
  */
 public record MobDefinition(
         String id,
@@ -69,7 +71,8 @@ public record MobDefinition(
         List<SkillSpec> skills,
         List<DropSpec> drops,
         boolean clearVanillaDrops,
-        Integer chunkRadius
+        Integer chunkRadius,
+        MountSpec mount
 ) {
 
     /** Vida maxima configurada, o 20 si no se especifico. */
@@ -85,5 +88,10 @@ public record MobDefinition(
     /** {@code true} si es un mob de servidor (PvE, sin dueno ni leash). */
     public boolean server() {
         return this.category == MobCategory.SERVER;
+    }
+
+    /** {@code true} si es una montura. */
+    public boolean mountable() {
+        return this.category == MobCategory.MOUNT;
     }
 }
