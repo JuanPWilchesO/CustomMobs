@@ -150,6 +150,9 @@ public final class PlayerMobRegistry {
                 yaml.set(stateBase + "glowing", state.glowing());
                 yaml.set(stateBase + "invisible", state.invisible());
                 yaml.set(stateBase + "silent", state.silent());
+                for (Map.Entry<String, Double> entry : state.attributes().entrySet()) {
+                    yaml.set(stateBase + "attributes." + entry.getKey(), entry.getValue());
+                }
                 yaml.set(stateBase + "effects", state.potionEffects());
             }
         }
@@ -175,7 +178,21 @@ public final class PlayerMobRegistry {
                 state.getBoolean("glowing", false),
                 state.getBoolean("invisible", false),
                 state.getBoolean("silent", false),
+                readAttributes(state),
                 List.copyOf(state.getStringList("effects")));
+    }
+
+    /** Atributos desviados guardados en el disco. */
+    private static Map<String, Double> readAttributes(ConfigurationSection state) {
+        ConfigurationSection attributes = state.getConfigurationSection("attributes");
+        if (attributes == null) {
+            return Map.of();
+        }
+        Map<String, Double> found = new LinkedHashMap<>();
+        for (String key : attributes.getKeys(false)) {
+            found.put(key, attributes.getDouble(key));
+        }
+        return Map.copyOf(found);
     }
 
     /** Anota el estado del mob al recogerlo en su huevo. */

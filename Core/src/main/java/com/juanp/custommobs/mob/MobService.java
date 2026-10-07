@@ -771,7 +771,7 @@ public final class MobService implements Listener {
         CustomMob customMob = this.active.get(link.entityId());
         if (customMob != null) {
             // El estado se lee ANTES de quitar la entidad: es lo unico que quedara de ella.
-            this.playerMobs.saveState(linkId, MobState.capture(customMob.entity()));
+            this.playerMobs.saveState(linkId, MobState.capture(customMob.entity(), customMob.definition()));
             if (this.styles != null) {
                 this.styles.clear(customMob.entity());
             }
@@ -783,7 +783,8 @@ public final class MobService implements Listener {
             // podia recoger; ahora se quita igual.
             Entity orphan = Bukkit.getEntity(link.entityId());
             if (orphan instanceof LivingEntity living) {
-                this.playerMobs.saveState(linkId, MobState.capture(living));
+                MobDefinition definition = this.registry.get(link.definitionId()).orElse(null);
+                this.playerMobs.saveState(linkId, MobState.capture(living, definition));
                 if (this.styles != null) {
                     this.styles.clear(living);
                 }

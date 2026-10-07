@@ -2,12 +2,34 @@ package com.juanp.custommobs.item;
 
 import org.bukkit.attribute.Attribute;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 
 /** Traduce claves amistosas del yml a constantes de {@link Attribute}. */
 public final class Attributes {
 
     private Attributes() {
+    }
+
+    /**
+     * Todos los atributos que el plugin sabe traducir, sin repetir.
+     *
+     * <p>Hace falta una lista porque {@code Attributable} solo permite preguntar por un
+     * atributo concreto: no hay forma de recorrer los que tiene una entidad.
+     */
+    public static List<Attribute> known() {
+        LinkedHashSet<Attribute> all = new LinkedHashSet<>();
+        for (String key : List.of("health", "damage", "speed", "follow-range", "armor",
+                "armor-toughness", "knockback-resistance", "attack-speed", "attack-knockback",
+                "max-absorption", "scale", "step-height", "jump-strength", "gravity",
+                "water-movement-efficiency", "movement-efficiency")) {
+            Attribute attribute = resolve(key);
+            if (attribute != null) {
+                all.add(attribute);
+            }
+        }
+        return List.copyOf(all);
     }
 
     public static Attribute resolve(String key) {
