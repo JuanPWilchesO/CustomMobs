@@ -115,6 +115,7 @@ public final class MobLoader {
         }
 
         MountSpec mount = parseMount(cfg.getConfigurationSection("mount"), category);
+        NaturalSpawn spawn = parseNatural(cfg.getConfigurationSection("spawn"), category);
 
         return Optional.of(new MobDefinition(
                 id,
@@ -140,7 +141,8 @@ public final class MobLoader {
                 drops,
                 cfg.getBoolean("clear-vanilla-drops", false),
                 chunkRadius(cfg),
-                mount
+                mount,
+                spawn
         ));
     }
 
@@ -317,6 +319,54 @@ public final class MobLoader {
             return null;
         }
         return Math.max(0, cfg.getInt("chunk-radius"));
+    }
+
+    /**
+     * Lee la seccion {@code spawn}: aparicion aleatoria por el mundo.
+     *
+     * <p>Solo tiene sentido en mobs de servidor. Un mob de servidor sin seccion no aparece
+     * solo, que es como se ha comportado siempre.
+     */
+    private static NaturalSpawn parseNatural(ConfigurationSection section, MobCategory category) {
+        if (section == null || !section.getBoolean("natural", false)) {
+            return NaturalSpawn.NONE;
+        }
+        if (category != MobCategory.SERVER) {
+            // Los mobs con dueno se invocan con su huevo; los naturales son cosa del mundo.
+            return NaturalSpawn.NONE;
+        }
+        ConfigurationSection group = section.getConfigurationSection("group");
+        int groupMin = group == null ? 1 : Math.max(1, group.getInt("min", 1));
+        int groupMax = group == null ? groupMin : Math.max(groupMin, group.getInt("max", groupMin));
+        ConfigurationSection light = section.getConfigurationSection("light");
+        ConfigurationSection y = section.getConfigurationSection("y");
+        ConfigurationSection distance = section.getConfigurationSection("distance");
+        return new NaturalSpawn(
+                true,
+                lowerList(section.getStringList("worlds")),
+                lowerList(section.getStringList("biomes")),
+                groupMin,
+                groupMax,
+                Math.min(1.0D, Math.max(0.0D, section.getDouble("chance", 0.1D))),
+                section.getString("time", "any").toLowerCase(Locale.ROOT).trim(),
+                light == null ? 0 : light.getInt("min", 0),
+                light == null ? 15 : light.getInt("max", 15),
+                y == null ? 0 : y.getInt("min", 0),
+                y == null ? 320 : y.getInt("max", 320),
+                distance == null ? 24.0D : Math.max(0.0D, distance.getDouble("min", 24.0D)),
+                distance == null ? 96.0D : Math.max(1.0D, distance.getDouble("max", 96.0D)),
+                Math.max(1, section.getInt("cap", 20)));
+    }
+
+    /** Lista de textos en minusculas, sin vacios. */
+    private static List<String> lowerList(List<String> raw) {
+        List<String> values = new ArrayList<>(raw.size());
+        for (String value : raw) {
+            if (value != null && !value.isBlank()) {
+                values.add(value.toLowerCase(Locale.ROOT).trim());
+            }
+        }
+        return List.copyOf(values);
     }
 
     /**

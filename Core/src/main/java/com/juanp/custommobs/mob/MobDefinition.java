@@ -72,7 +72,8 @@ public record MobDefinition(
         List<DropSpec> drops,
         boolean clearVanillaDrops,
         Integer chunkRadius,
-        MountSpec mount
+        MountSpec mount,
+        NaturalSpawn spawn
 ) {
 
     /** Vida maxima configurada, o 20 si no se especifico. */
@@ -93,6 +94,11 @@ public record MobDefinition(
     /** {@code true} si es una montura. */
     public boolean mountable() {
         return this.category == MobCategory.MOUNT;
+    }
+
+    /** {@code true} si este mob aparece solo por el mundo. */
+    public boolean natural() {
+        return this.spawn != null && this.spawn.natural();
     }
 
     /** Efectos constantes de la montura; vacio si no es montura o no tiene. */

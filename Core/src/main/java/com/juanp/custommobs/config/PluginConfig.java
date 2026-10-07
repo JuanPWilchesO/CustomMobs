@@ -42,6 +42,10 @@ import java.util.Map;
  * @param recallRadius        radio de abandono; {@code 0} = derivado de la simulation-distance
  * @param recallMobSeconds    segundos antes de destruir el mob abandonado
  * @param recallChunkSeconds  segundos antes de liberar el chunk que se mantuvo cargado
+ * @param spawnEnabled        si los mobs de servidor pueden aparecer solos por el mundo
+ * @param spawnIntervalSeconds cada cuantos segundos se intenta
+ * @param spawnAttempts       intentos de aparicion por jugador y ciclo
+ * @param spawnGlobalCap      tope de mobs naturales vivos a la vez
  */
 public record PluginConfig(
         boolean debug,
@@ -70,7 +74,11 @@ public record PluginConfig(
         boolean recallEnabled,
         double recallRadius,
         long recallMobSeconds,
-        long recallChunkSeconds
+        long recallChunkSeconds,
+        boolean spawnEnabled,
+        long spawnIntervalSeconds,
+        int spawnAttempts,
+        int spawnGlobalCap
 ) {
 
     public static PluginConfig load(FileConfiguration cfg) {
@@ -111,7 +119,11 @@ public record PluginConfig(
                 cfg.getBoolean("recall.enabled", true),
                 Math.max(0.0D, cfg.getDouble("recall.radius", 0.0D)),
                 mobSeconds,
-                chunkSeconds
+                chunkSeconds,
+                cfg.getBoolean("spawning.enabled", true),
+                Math.max(1L, cfg.getLong("spawning.interval-seconds", 10L)),
+                Math.max(1, cfg.getInt("spawning.attempts", 2)),
+                Math.max(1, cfg.getInt("spawning.global-cap", 80))
         );
     }
 

@@ -69,6 +69,8 @@ public final class MobService implements Listener {
     private final GroupLink groupLink;
     private final SpawnerRegistry spawners;
     private final Map<UUID, CustomMob> active = new ConcurrentHashMap<>();
+    /** Entidades que aparecieron al azar: cuentan para los topes de aparicion. */
+    private final Set<UUID> natural = ConcurrentHashMap.newKeySet();
 
     private StyleService styles;
 
@@ -419,7 +421,7 @@ public final class MobService implements Listener {
     /** Invoca un mob. Los mobs de servidor ignoran el dueno aunque se pase uno. */
     public LivingEntity spawn(MobDefinition definition, Location location, Player owner) {
         if (owner == null || definition.server()) {
-            return this.spawn(definition, location, null, null, null);
+            return this.spawn(definition, location, null, null, null, false);
         }
         // Un mob de jugador nace siempre vinculado a un huevo: es lo que lo representa
         // despues, y lo que permite guardarlo y volver a desplegarlo.
@@ -450,7 +452,7 @@ public final class MobService implements Listener {
             link = this.playerMobs.create(owner.getUniqueId(), definition.id());
         }
 
-        LivingEntity entity = this.spawn(definition, location, owner, null, link.linkId());
+        LivingEntity entity = this.spawn(definition, location, owner, null, link.linkId(), false);
         if (entity == null) {
             if (created) {
                 this.playerMobs.removeLink(link.linkId());
@@ -472,11 +474,45 @@ public final class MobService implements Listener {
 
     /** Invoca un mob sin dueno: mobs de servidor y pruebas por consola. */
     public LivingEntity spawn(MobDefinition definition, Location location) {
-        return this.spawn(definition, location, null, null, null);
+        return this.spawn(definition, location, null, null, null, false);
+    }
+
+    /**
+     * Invoca un mob <b>natural</b>: de una sola vida y sin dejar spawner.
+     *
+     * <p>La diferencia con {@link #spawn(MobDefinition, Location)} es justo esa: un mob
+     * natural no escribe en {@code data/spawners.yml}. Si lo hiciera, cada aparicion al azar
+     * dejaria un punto que reaparece para siempre, que es lo contrario de una sola vida.
+     *
+     * <p>Ademas no es persistente: el propio Minecraft lo retira cuando no tiene a nadie
+     * cerca, como a cualquier bicho del mundo.
+     */
+    public LivingEntity spawnNatural(MobDefinition definition, Location location) {
+        LivingEntity entity = this.spawn(definition, location, null, null, null, true);
+        if (entity != null) {
+            this.natural.add(entity.getUniqueId());
+        }
+        return entity;
+    }
+
+    /** Mobs naturales vivos ahora mismo, de todos o de una definicion. */
+    public int naturalCount() {
+        return this.natural.size();
+    }
+
+    public int naturalCount(String definitionId) {
+        int count = 0;
+        for (UUID id : this.natural) {
+            CustomMob customMob = this.active.get(id);
+            if (customMob != null && customMob.definition().id().equals(definitionId)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private LivingEntity spawn(MobDefinition definition, Location location, Player owner,
-                               UUID knownSpawnerId, UUID linkId) {
+                               UUID knownSpawnerId, UUID linkId, boolean natural) {
         World world = location.getWorld();
         if (world == null || !this.worldEnabled(world)) {
             return null;
@@ -493,7 +529,7 @@ public final class MobService implements Listener {
         // puesto cuando otros plugins (MobHealth, por ejemplo) ven la entidad por primera vez.
         Entity spawned = world.spawn(location, type, entity -> {
             if (entity instanceof Mob mob) {
-                this.configure(mob, definition, ownerId, knownSpawnerId, location, linkId);
+                this.configure(mob, definition, ownerId, knownSpawnerId, location, linkId, natural);
             }
         });
         if (!(spawned instanceof Mob mob)) {
@@ -506,7 +542,7 @@ public final class MobService implements Listener {
 
     /** Configura una entidad ya existente y la registra. */
     public void prepare(Mob mob, MobDefinition definition, UUID ownerId) {
-        this.configure(mob, definition, ownerId, null, mob.getLocation(), null);
+        this.configure(mob, definition, ownerId, null, mob.getLocation(), null, false);
         this.register(mob);
     }
 
@@ -515,9 +551,12 @@ public final class MobService implements Listener {
      * Paper, antes de que la entidad entre al mundo.
      */
     private void configure(Mob mob, MobDefinition definition, UUID ownerId, UUID knownSpawnerId,
-                           Location spawn, UUID linkId) {
-        mob.setPersistent(true);
-        mob.setRemoveWhenFarAway(false);
+                           Location spawn, UUID linkId, boolean natural) {
+        // Un mob natural se comporta como cualquier bicho del mundo: no es persistente y el
+        // servidor lo retira cuando nadie lo tiene cerca. Los demas son contenido del
+        // jugador o del servidor y no deben irse solos.
+        mob.setPersistent(!natural);
+        mob.setRemoveWhenFarAway(natural);
         mob.setCanPickupItems(false);
         mob.setCustomName(definition.displayName());
         mob.setCustomNameVisible(true);
@@ -566,7 +605,9 @@ public final class MobService implements Listener {
             container.set(this.keys.spawnZ(), PersistentDataType.DOUBLE, spawn.getZ());
         }
         UUID spawnerId = knownSpawnerId;
-        if (spawnerId == null && definition.server() && definition.respawnSeconds() > 0 && spawnWorld != null) {
+        // Un mob natural NUNCA deja spawner: es de una sola vida.
+        if (spawnerId == null && !natural && definition.server()
+                && definition.respawnSeconds() > 0 && spawnWorld != null) {
             spawnerId = UUID.randomUUID();
             this.spawners.put(new SpawnerEntry(spawnerId, definition.id(), spawnWorld.getName(),
                     spawn.getX(), spawn.getY(), spawn.getZ(), definition.respawnSeconds(), 0L));
@@ -778,6 +819,8 @@ public final class MobService implements Listener {
     }
 
     public void prune() {
+        // Un natural que ya no existe deja de ocupar tope.
+        this.natural.removeIf(id -> !this.active.containsKey(id));
         this.active.values().removeIf(customMob -> {
             LivingEntity entity = customMob.entity();
             return !entity.isValid() || entity.isDead();
@@ -1057,7 +1100,7 @@ public final class MobService implements Listener {
             return false;
         }
         LivingEntity spawned = this.spawn(definition, new Location(world, entry.x(), entry.y(), entry.z()),
-                null, entry.id(), null);
+                null, entry.id(), null, false);
         if (spawned != null) {
             this.spawners.put(entry.alive());
             this.spawners.save();

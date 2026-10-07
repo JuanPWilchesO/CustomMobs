@@ -94,6 +94,19 @@ point:
   # por mob. 0 = desactivado.
   chunk-radius: 4
 
+spawning:
+  # Aparicion aleatoria de los mobs de servidor que la pidan en su yml con 'spawn.natural'.
+  # OJO: esto es aparte de los spawners. Un spawner es un punto fijo que reaparece; esto
+  # son mobs que brotan al azar, de una sola vida y sin persistir. No los toca ni los
+  # sustituye: solo suma.
+  enabled: true
+  # Cada cuantos segundos se intenta.
+  interval-seconds: 10
+  # Intentos por jugador y ciclo.
+  attempts: 2
+  # Tope de mobs naturales vivos a la vez en todo el servidor.
+  global-cap: 80
+
 book:
   # Libro de inspeccion: muestra al jugador SUS mobs con sus estadisticas de combate.
   # Solo lo reparte un administrador (/custommobs book), pero cualquier jugador puede

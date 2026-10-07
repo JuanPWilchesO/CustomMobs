@@ -34,6 +34,7 @@ import com.juanp.custommobs.mob.MobRegistry;
 import com.juanp.custommobs.mob.MobService;
 import com.juanp.custommobs.mob.MountEffectTask;
 import com.juanp.custommobs.mob.MountFrostTask;
+import com.juanp.custommobs.mob.NaturalSpawnTask;
 import com.juanp.custommobs.recall.RecallService;
 import com.juanp.custommobs.skill.SkillInteractListener;
 import com.juanp.custommobs.skill.SkillService;
@@ -90,6 +91,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private AnchorChunkService anchorChunks;
     private MountEffectTask mountEffects;
     private MountFrostTask mountFrost;
+    private NaturalSpawnTask naturalSpawn;
     private UpgradeRegistry upgrades;
     private UpgradeService upgradeService;
     private MobBookService book;
@@ -196,6 +198,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.mountFrost = new MountFrostTask(this, this.mobService);
         this.mountFrost.runTaskTimer(this, 2L, 2L);
 
+        // Aparicion aleatoria de mobs de servidor, si alguno la pide en su yml.
+        this.naturalSpawn = new NaturalSpawnTask(this, this.mobService, this.registry);
+        long spawnInterval = this.config.spawnIntervalSeconds() * 20L;
+        this.naturalSpawn.runTaskTimer(this, spawnInterval, spawnInterval);
+
         this.ambientTask = new AmbientTask(this.soundService);
         this.ambientTask.runTaskTimer(this, 20L, 20L);
 
@@ -249,6 +256,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
         }
         if (this.mountFrost != null) {
             this.mountFrost.cancel();
+        }
+        if (this.naturalSpawn != null) {
+            this.naturalSpawn.cancel();
         }
         if (this.ambientTask != null) {
             this.ambientTask.cancel();
