@@ -1,0 +1,30 @@
+id: prueba_montura
+# Montura basica de prueba: lo minimo que se puede montar.
+# Sirve para el ciclo completo: huevo -> colocar -> subirse -> recoger -> volver a colocar.
+# NO es contenido de juego.
+category: mount
+display-name: '&6Montura de prueba'
+type: HORSE
+egg: HORSE_SPAWN_EGG
+burn-in-daylight: false
+ai: true
+
+attributes:
+  health: 30.0
+  speed: 0.25
+  jump-strength: 0.7
+
+# Sin crafteo: se invoca por comando, para no chocar con la receta del ejemplo 06.
+recipe:
+  extras:
+    - GOLD_INGOT
+  amount: 0
+
+mount:
+  # Sin color ni estilo: la variante de serie, para notar la diferencia con la otra.
+  saddled: true
+  tamed: true
+
+leash:
+  max-distance: 24.0
+  teleport-distance: 48.0

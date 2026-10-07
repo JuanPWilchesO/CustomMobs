@@ -1,0 +1,32 @@
+id: prueba_fuego_amigo
+# Mob de prueba para el fuego amigo y para que los mobs sigan el ataque del dueno.
+#   1) Pegale: NO debe perder vida.
+#   2) Ataca tu a un orco: este mob debe ir a por el orco.
+#   3) /custommobs despedir prueba_fuego_amigo -> debe desaparecer.
+# NO es contenido de juego.
+category: player
+display-name: '&aPrueba Fuego Amigo'
+type: ZOMBIE
+egg: ZOMBIE_SPAWN_EGG
+glow: true
+burn-in-daylight: false
+ai: true
+
+attributes:
+  health: 40.0
+  damage: 2.0
+  speed: 0.25
+
+# Defensivo: es el modo en el que tiene sentido el aggro, y el que prueba el mando
+# del dueno. Sin esto, los mobs 'never' no deben reaccionar ni aunque les pegues.
+targets:
+  players: defensive
+
+recipe:
+  extras:
+    - GOLD_INGOT
+  amount: 0
+
+leash:
+  max-distance: 16.0
+  teleport-distance: 32.0

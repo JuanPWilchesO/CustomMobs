@@ -1,0 +1,55 @@
+id: prueba_montura_helada
+# Montura de prueba CON todo: variante, armadura, paso helado, efectos y skill pasiva.
+# NO es contenido de juego.
+category: mount
+display-name: '&bMontura helada'
+type: HORSE
+egg: HORSE_SPAWN_EGG
+burn-in-daylight: false
+ai: true
+
+attributes:
+  health: 60.0
+  speed: 0.3
+  jump-strength: 0.9
+
+recipe:
+  extras:
+    - GOLD_INGOT
+  amount: 0
+
+mount:
+  color: BLACK
+  style: WHITE_DOTS
+  saddled: true
+  tamed: true
+  armor: DIAMOND_HORSE_ARMOR
+  # El agua que pisa se hiela y se deja derretir.
+  frost-walker: true
+  effects:
+    # Al propio caballo.
+    - potion: fire_resistance
+    # A quien la monta.
+    - potion: conduit_power
+      to: rider
+    # A quien este cerca: SOLO dueno, su team y sus aliados.
+    - potion: speed
+      to: nearby
+      radius: 8.0
+      amplifier: 0
+
+skills:
+  # Una montura no entra en combate: su via son las pasivas.
+  - id: aliento
+    mode: pasiva
+    effect: heal
+    target: owner
+    range: 8.0
+    amount: 2.0
+    cooldown-seconds: 5
+    chance: 1.0
+    message: '&b[montura] OK: te cure 2 con una skill pasiva.'
+
+leash:
+  max-distance: 24.0
+  teleport-distance: 48.0
