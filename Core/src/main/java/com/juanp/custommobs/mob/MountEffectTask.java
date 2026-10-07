@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  * Reparte los efectos constantes de las monturas.
@@ -53,14 +54,14 @@ public final class MountEffectTask extends BukkitRunnable {
                         Math.max(0, effect.amplifier()), false, false, false);
                 if (effect.toRider()) {
                     for (Entity passenger : horse.getPassengers()) {
-                        if (passenger instanceof LivingEntity riding) {
+                        if (passenger instanceof Player riding && this.isFriendly(customMob, riding)) {
                             riding.addPotionEffect(potion);
                         }
                     }
                 } else if (effect.toNearby()) {
                     double radius = effect.radius() > 0.0D ? effect.radius() : 8.0D;
                     for (Entity near : horse.getNearbyEntities(radius, radius, radius)) {
-                        if (near instanceof Player player) {
+                        if (near instanceof Player player && this.isFriendly(customMob, player)) {
                             player.addPotionEffect(potion);
                         }
                     }
@@ -69,6 +70,23 @@ public final class MountEffectTask extends BukkitRunnable {
                 }
             }
         }
+    }
+
+    /**
+     * {@code true} si ese jugador puede recibir los beneficios de la montura.
+     *
+     * <p>No vale cualquiera que pase cerca: solo el dueno, su team y sus aliados. Regalar
+     * resistencia al fuego a un desconocido no es lo que se pidio.
+     */
+    private boolean isFriendly(CustomMob customMob, Player player) {
+        UUID ownerId = customMob.ownerId();
+        if (ownerId == null) {
+            return false;
+        }
+        if (ownerId.equals(player.getUniqueId())) {
+            return true;
+        }
+        return this.service.teamLink().isAlly(ownerId, player.getUniqueId());
     }
 
     /** El efecto de Bukkit, o {@code null} si el yml trae un id que no existe. */
