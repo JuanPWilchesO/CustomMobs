@@ -55,25 +55,47 @@ public final class MobItemListener implements Listener {
     }
 
     /**
-     * Nadie cambia la silla ni la armadura de una montura.
+     * Un mob custom no se modifica a mano.
      *
-     * <p>Con la mano vacia se sigue pudiendo montar: solo se bloquea el clic cuando el
-     * jugador trae puesto precisamente eso.
+     * <p>Un jugador puede renombrarlo con una etiqueta, ponerle silla o armadura, o
+     * llevarselo con una correa. Nada de eso debe poder hacer: el mob cambia solo por lo
+     * que el plugin permite —el estilo de su dueno, los items de mejora, el huevo— y
+     * todo lo demas lo decide su definicion.
+     *
+     * <p>Con la mano vacia se sigue pudiendo montar una montura: solo se bloquea el clic
+     * cuando trae puesto precisamente uno de esos objetos.
      */
     @EventHandler(ignoreCancelled = true)
-    public void onMountGear(PlayerInteractEntityEvent event) {
+    public void onModifyMob(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
         CustomMob customMob = this.service.find(event.getRightClicked().getUniqueId()).orElse(null);
-        if (customMob == null || !customMob.definition().mountable()) {
+        if (customMob == null) {
             return;
         }
         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
-        if (isMountGear(item)) {
-            event.setCancelled(true);
+        if (item == null || item.getType().isAir()) {
+            return;
+        }
+        String type = item.getType().name();
+        boolean nameTag = item.getType() == org.bukkit.Material.NAME_TAG;
+        boolean gear = item.getType() == org.bukkit.Material.SADDLE
+                || type.endsWith("_HORSE_ARMOR") || type.equals("WOLF_ARMOR");
+        boolean lead = item.getType() == org.bukkit.Material.LEAD;
+        if (!nameTag && !gear && !lead) {
+            return;
+        }
+        event.setCancelled(true);
+        if (nameTag) {
             event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
-                    "&cLa silla y la armadura de esta montura las pone su definicion."));
+                    "&cEl nombre de un mob custom lo pone su definicion."));
+        } else if (lead) {
+            event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
+                    "&cA un mob custom no se lo lleva nadie con correa."));
+        } else {
+            event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
+                    "&cLa silla y la armadura de un mob custom las pone su definicion."));
         }
     }
 
@@ -93,15 +115,6 @@ public final class MobItemListener implements Listener {
         if (event.getRawSlot() == 0 || event.getRawSlot() == 1) {
             event.setCancelled(true);
         }
-    }
-
-    /** {@code true} si el objeto es silla o armadura de caballo. */
-    private static boolean isMountGear(ItemStack item) {
-        if (item == null || item.getType().isAir()) {
-            return false;
-        }
-        return item.getType() == org.bukkit.Material.SADDLE
-                || item.getType().name().endsWith("_HORSE_ARMOR");
     }
 
     /** Con el libro en la mano apuntando a un mob, tambien se abre. */
