@@ -18,6 +18,15 @@ public interface DisguiseLink {
     /** Aplica el disfraz a una entidad ya existente (restaurada tras un reinicio). */
     void apply(LivingEntity entity, MobDefinition definition);
 
+    /**
+     * Vuelve a mandar el disfraz a una entidad que ya lo llevaba.
+     *
+     * <p>Hace falta tras un cambio de mundo: el cliente rehace las entidades al entrar en
+     * el mundo nuevo y el disfraz se queda por el camino. {@link #apply} no sirve para
+     * esto, porque se salta las entidades que ya estan marcadas como disfrazadas.
+     */
+    void refresh(LivingEntity entity, MobDefinition definition);
+
     /** {@code true} si la entidad ya lleva un disfraz aplicado. */
     boolean isDisguised(LivingEntity entity);
 }

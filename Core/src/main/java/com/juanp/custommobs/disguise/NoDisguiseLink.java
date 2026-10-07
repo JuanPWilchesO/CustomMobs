@@ -22,6 +22,11 @@ public final class NoDisguiseLink implements DisguiseLink {
     }
 
     @Override
+    public void refresh(LivingEntity entity, MobDefinition definition) {
+        // Sin LibsDisguises no hay nada que reenviar.
+    }
+
+    @Override
     public boolean isDisguised(LivingEntity entity) {
         return false;
     }

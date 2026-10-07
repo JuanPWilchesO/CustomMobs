@@ -46,7 +46,7 @@ public final class PlayerMobRegistry {
      * dueno lo abandono.
      */
     public record MobLink(UUID linkId, UUID owner, String definitionId, UUID entityId,
-                          String world, double x, double y, double z) {
+                          String world, double x, double y, double z, MobState state) {
 
         public boolean deployed() {
             return this.entityId != null;
@@ -60,12 +60,18 @@ public final class PlayerMobRegistry {
 
         public MobLink withEntity(UUID entity) {
             return new MobLink(this.linkId, this.owner, this.definitionId, entity,
-                    this.world, this.x, this.y, this.z);
+                    this.world, this.x, this.y, this.z, this.state);
         }
 
         public MobLink moved(String world, double x, double y, double z) {
             return new MobLink(this.linkId, this.owner, this.definitionId, this.entityId,
-                    world, x, y, z);
+                    world, x, y, z, this.state);
+        }
+
+        /** Estado guardado del mob; {@code null} si nunca se recogio. */
+        public MobLink withState(MobState state) {
+            return new MobLink(this.linkId, this.owner, this.definitionId, this.entityId,
+                    this.world, this.x, this.y, this.z, state);
         }
     }
 
@@ -106,7 +112,8 @@ public final class PlayerMobRegistry {
             UUID entity = parse(links.getString(key + ".entity"));
             MobLink link = new MobLink(linkId, owner, definition, entity,
                     links.getString(key + ".world"),
-                    links.getDouble(key + ".x"), links.getDouble(key + ".y"), links.getDouble(key + ".z"));
+                    links.getDouble(key + ".x"), links.getDouble(key + ".y"), links.getDouble(key + ".z"),
+                    readState(links, key));
             this.byLink.put(linkId, link);
             if (entity != null) {
                 this.linkOfEntity.put(entity, linkId);
@@ -133,6 +140,19 @@ public final class PlayerMobRegistry {
                 yaml.set(base + "y", link.y());
                 yaml.set(base + "z", link.z());
             }
+            MobState state = link.state();
+            if (state != null) {
+                String stateBase = base + "state.";
+                yaml.set(stateBase + "health", state.health());
+                yaml.set(stateBase + "absorption", state.absorption());
+                yaml.set(stateBase + "fire-ticks", state.fireTicks());
+                yaml.set(stateBase + "remaining-air", state.remainingAir());
+                yaml.set(stateBase + "glowing", state.glowing());
+                yaml.set(stateBase + "invisible", state.invisible());
+                yaml.set(stateBase + "silent", state.silent());
+                yaml.set(stateBase + "patrol-leader", state.patrolLeader());
+                yaml.set(stateBase + "effects", state.potionEffects());
+            }
         }
         try {
             yaml.save(this.file);
@@ -142,9 +162,47 @@ public final class PlayerMobRegistry {
         }
     }
 
+    /** Estado guardado en el disco, o {@code null} si ese vinculo no lo tiene. */
+    private static MobState readState(ConfigurationSection links, String key) {
+        ConfigurationSection state = links.getConfigurationSection(key + ".state");
+        if (state == null) {
+            return null;
+        }
+        return new MobState(
+                state.getDouble("health", 20.0D),
+                state.getDouble("absorption", 0.0D),
+                state.getInt("fire-ticks", 0),
+                state.getInt("remaining-air", 300),
+                state.getBoolean("glowing", false),
+                state.getBoolean("invisible", false),
+                state.getBoolean("silent", false),
+                state.getBoolean("patrol-leader", false),
+                List.copyOf(state.getStringList("effects")));
+    }
+
+    /** Anota el estado del mob al recogerlo en su huevo. */
+    public void saveState(UUID linkId, MobState state) {
+        MobLink link = this.byLink.get(linkId);
+        if (link == null || state == null) {
+            return;
+        }
+        this.byLink.put(linkId, link.withState(state));
+        this.dirty = true;
+    }
+
+    /** Olvida el estado: ya se devolvio al mob al volver a desplegarlo. */
+    public void clearState(UUID linkId) {
+        MobLink link = this.byLink.get(linkId);
+        if (link == null || link.state() == null) {
+            return;
+        }
+        this.byLink.put(linkId, link.withState(null));
+        this.dirty = true;
+    }
+
     /** Crea un vinculo nuevo, sin entidad todavia. */
     public MobLink create(UUID owner, String definitionId) {
-        MobLink link = new MobLink(UUID.randomUUID(), owner, definitionId, null, null, 0, 0, 0);
+        MobLink link = new MobLink(UUID.randomUUID(), owner, definitionId, null, null, 0, 0, 0, null);
         this.byLink.put(link.linkId(), link);
         this.dirty = true;
         return link;
@@ -161,7 +219,7 @@ public final class PlayerMobRegistry {
         MobLink existing = this.byLink.get(linkId);
         MobLink link = existing != null
                 ? existing.withEntity(entityId)
-                : new MobLink(linkId, owner, definitionId, entityId, null, 0, 0, 0);
+                : new MobLink(linkId, owner, definitionId, entityId, null, 0, 0, 0, null);
         this.byLink.put(linkId, link);
         if (entityId != null) {
             this.linkOfEntity.put(entityId, linkId);

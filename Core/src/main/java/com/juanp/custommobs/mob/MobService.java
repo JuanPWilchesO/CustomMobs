@@ -359,6 +359,8 @@ public final class MobService implements Listener {
         PlayerMobRegistry.MobLink link = linkId == null ? null
                 : this.playerMobs.byLink(linkId).orElse(null);
         boolean created = link == null;
+        // Estado guardado al recogerlo, si lo hay: el mob vuelve como estaba.
+        MobState state = created ? null : link.state();
         if (created) {
             link = this.playerMobs.create(owner.getUniqueId(), definition.id());
         }
@@ -371,6 +373,11 @@ public final class MobService implements Listener {
             return Optional.empty();
         }
         this.playerMobs.deploy(link.linkId(), entity.getUniqueId());
+        if (state != null) {
+            // Se devuelve el estado y se olvida: solo vale mientras el mob esta guardado.
+            state.applyTo(entity);
+            this.playerMobs.clearState(link.linkId());
+        }
         // Se anota donde nacio: para un mob anclado a un bloque, ese punto ES su ancla, y
         // hace falta saberlo aunque su chunk se descargue.
         this.playerMobs.move(link.linkId(), entity.getLocation());
@@ -692,6 +699,9 @@ public final class MobService implements Listener {
             // servicio de abandono decide su suerte.
             if (leash.teleportDistance() > 0.0D && this.worldEnabled(anchor.getWorld())) {
                 mob.teleport(anchor);
+                // Al cambiar de mundo el cliente rehace las entidades: hay que reenviar el
+                // disfraz y el estilo, o el mob vuelve a verse con su forma base.
+                this.refreshAppearance(customMob, mob);
             }
             return;
         }
@@ -714,6 +724,15 @@ public final class MobService implements Listener {
         } catch (Throwable ignored) {
             // Servidor sin la API Pathfinder de Paper.
         }
+    }
+
+    /** Reenvia nombre, brillo y disfraz a una entidad viva. */
+    private void refreshAppearance(CustomMob customMob, Mob mob) {
+        if (this.styles != null) {
+            this.styles.applyName(mob, customMob.definition(), customMob.ownerId(), customMob.teamId());
+            this.styles.applyGlow(mob, customMob.definition(), customMob.ownerId(), customMob.teamId());
+        }
+        this.disguiseLink.refresh(mob, customMob.definition());
     }
 
     /** Un mob de jugador que muere deja libre su cupo y limpia su brillo. */
@@ -740,6 +759,8 @@ public final class MobService implements Listener {
         }
         CustomMob customMob = this.active.get(link.entityId());
         if (customMob != null) {
+            // El estado se lee ANTES de quitar la entidad: es lo unico que quedara de ella.
+            this.playerMobs.saveState(linkId, MobState.capture(customMob.entity()));
             if (this.styles != null) {
                 this.styles.clear(customMob.entity());
             }
@@ -750,8 +771,9 @@ public final class MobService implements Listener {
             // activos. Antes se dejaba viva y quedaba un mob huerfano que su huevo ya no
             // podia recoger; ahora se quita igual.
             Entity orphan = Bukkit.getEntity(link.entityId());
-            if (orphan != null) {
-                if (this.styles != null && orphan instanceof LivingEntity living) {
+            if (orphan instanceof LivingEntity living) {
+                this.playerMobs.saveState(linkId, MobState.capture(living));
+                if (this.styles != null) {
                     this.styles.clear(living);
                 }
                 orphan.remove();

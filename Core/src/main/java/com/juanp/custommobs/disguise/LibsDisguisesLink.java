@@ -63,6 +63,22 @@ public final class LibsDisguisesLink implements DisguiseLink {
     }
 
     @Override
+    public void refresh(LivingEntity entity, MobDefinition definition) {
+        Disguise disguise = this.build(definition);
+        if (disguise == null) {
+            return;
+        }
+        try {
+            // Se reenvia sin preguntar: tras un cambio de mundo la marca sigue puesta pero
+            // el cliente ya no ve el disfraz, asi que 'apply' no haria nada.
+            DisguiseAPI.disguiseToAll(entity, disguise);
+        } catch (Throwable throwable) {
+            this.warn("No se pudo reenviar el disfraz de '" + definition.id() + "': "
+                    + throwable.getMessage());
+        }
+    }
+
+    @Override
     public boolean isDisguised(LivingEntity entity) {
         try {
             return DisguiseAPI.isDisguised(entity);
