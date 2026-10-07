@@ -50,7 +50,8 @@ public final class MountFrostTask extends BukkitRunnable {
             withFrost++;
             this.freeze(horse);
         }
-        if (!this.reported) {
+        // Diagnostico: solo con 'debug' encendido.
+        if (!this.reported && this.plugin.config().debug()) {
             this.reported = true;
             this.plugin.getLogger().info("[paso helado] caballos=" + horses
                     + ", con paso helado=" + withFrost);

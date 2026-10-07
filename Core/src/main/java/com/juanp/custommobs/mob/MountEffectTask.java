@@ -84,7 +84,8 @@ public final class MountEffectTask extends BukkitRunnable {
                 resolved++;
             }
         }
-        if (!this.reported) {
+        // Diagnostico: solo con 'debug' encendido, para que no sea ruido en produccion.
+        if (!this.reported && this.plugin.config().debug()) {
             this.reported = true;
             this.plugin.getLogger().info("[montura] caballos=" + horses
                     + ", con efectos=" + withEffects + ", efectos resueltos=" + resolved);
