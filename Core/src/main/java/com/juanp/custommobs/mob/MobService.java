@@ -24,6 +24,7 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Raider;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -734,6 +735,40 @@ public final class MobService implements Listener {
             mob.getPathfinder().moveTo(anchor, leash.returnSpeed());
         } catch (Throwable ignored) {
             // Servidor sin la API Pathfinder de Paper.
+        }
+    }
+
+    /**
+     * Reenvia la apariencia cuando el mob cambia de mundo, lo haga quien lo haga: el
+     * teletransporte del leash, un portal, o el de otro plugin.
+     *
+     * <p>El cliente rehace las entidades al entrar en un mundo nuevo, asi que el disfraz y
+     * el estilo se quedan por el camino si no se mandan otra vez.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onWorldChange(EntityTeleportEvent event) {
+        Location from = event.getFrom();
+        Location to = event.getTo();
+        if (from == null || to == null || from.getWorld() == null || to.getWorld() == null
+                || from.getWorld().equals(to.getWorld())) {
+            return;
+        }
+        if (!(event.getEntity() instanceof LivingEntity living)) {
+            return;
+        }
+        CustomMob customMob = this.active.get(living.getUniqueId());
+        if (customMob == null) {
+            return;
+        }
+        // El evento llega ANTES del salto: se reintenta despues. Dos intentos porque un
+        // portal no viaja necesariamente en el mismo tick.
+        for (long delay : new long[]{2L, 20L}) {
+            this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () -> {
+                if (living.isValid() && living instanceof Mob mob
+                        && to.getWorld().equals(mob.getWorld())) {
+                    this.refreshAppearance(customMob, mob);
+                }
+            }, delay);
         }
     }
 
