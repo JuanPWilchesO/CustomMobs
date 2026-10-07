@@ -150,7 +150,6 @@ public final class PlayerMobRegistry {
                 yaml.set(stateBase + "glowing", state.glowing());
                 yaml.set(stateBase + "invisible", state.invisible());
                 yaml.set(stateBase + "silent", state.silent());
-                yaml.set(stateBase + "patrol-leader", state.patrolLeader());
                 yaml.set(stateBase + "effects", state.potionEffects());
             }
         }
@@ -176,7 +175,6 @@ public final class PlayerMobRegistry {
                 state.getBoolean("glowing", false),
                 state.getBoolean("invisible", false),
                 state.getBoolean("silent", false),
-                state.getBoolean("patrol-leader", false),
                 List.copyOf(state.getStringList("effects")));
     }
 

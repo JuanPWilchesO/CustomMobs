@@ -22,6 +22,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Raider;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -443,6 +444,16 @@ public final class MobService implements Listener {
         this.applyAttributes(mob, definition);
         EquipmentApplier.apply(mob, definition, this.plugin.drops().catalog(),
                 problem -> this.plugin.getLogger().warning(problem + " en " + definition.id()));
+
+        // El mob aparece como dice la definicion y nada mas. El juego sortea rasgos
+        // visibles al crear ciertas entidades —la bandera de jefe de patrulla, por
+        // ejemplo— y esos no los controla el servidor: se apagan de raiz.
+        if (mob instanceof Raider raider) {
+            raider.setPatrolLeader(false);
+            raider.setCanJoinRaid(false);
+            raider.setPatrolTarget(null);
+            raider.setCelebrating(false);
+        }
 
         UUID teamId = ownerId != null ? this.teamLink.teamOf(ownerId).orElse(null) : null;
         var container = mob.getPersistentDataContainer();

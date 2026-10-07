@@ -5,7 +5,6 @@ import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Raider;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -33,7 +32,6 @@ public record MobState(
         boolean glowing,
         boolean invisible,
         boolean silent,
-        boolean patrolLeader,
         List<String> potionEffects
 ) {
 
@@ -47,13 +45,10 @@ public record MobState(
             effects.add(effect.getType().getKey() + EFFECT_SEPARATOR
                     + effect.getDuration() + EFFECT_SEPARATOR + effect.getAmplifier());
         }
-        // El jefe de patrulla es el que lleva la bandera: es el rasgo que el juego
-        // sortea al aparecer y el que se perdia al recoger el mob.
-        boolean captain = entity instanceof Raider raider && raider.isPatrolLeader();
         return new MobState(entity.getHealth(), entity.getAbsorptionAmount(),
                 entity.getFireTicks(), entity.getRemainingAir(),
                 entity.isGlowing(), entity.isInvisible(), entity.isSilent(),
-                captain, List.copyOf(effects));
+                List.copyOf(effects));
     }
 
     /**
@@ -72,9 +67,6 @@ public record MobState(
         entity.setGlowing(this.glowing);
         entity.setInvisible(this.invisible);
         entity.setSilent(this.silent);
-        if (this.patrolLeader && entity instanceof Raider raider) {
-            raider.setPatrolLeader(true);
-        }
         for (String raw : this.potionEffects) {
             PotionEffect effect = parseEffect(raw);
             if (effect != null) {
