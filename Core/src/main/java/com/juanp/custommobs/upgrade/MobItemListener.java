@@ -83,7 +83,10 @@ public final class MobItemListener implements Listener {
         boolean gear = item.getType() == org.bukkit.Material.SADDLE
                 || type.endsWith("_HORSE_ARMOR") || type.equals("WOLF_ARMOR");
         boolean lead = item.getType() == org.bukkit.Material.LEAD;
-        if (!nameTag && !gear && !lead) {
+        // Alimentar y criar quedan fuera: un mob custom no se cuida a mano, y criarlo
+        // seria sacar copias de una definicion que es del servidor.
+        boolean food = FEEDING.contains(item.getType()) || item.getType().name().endsWith("_SEEDS");
+        if (!nameTag && !gear && !lead && !food) {
             return;
         }
         event.setCancelled(true);
@@ -93,11 +96,59 @@ public final class MobItemListener implements Listener {
         } else if (lead) {
             event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
                     "&cA un mob custom no se lo lleva nadie con correa."));
+        } else if (food) {
+            event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
+                    "&cA un mob custom no se le da de comer ni se le cria."));
         } else {
             event.getPlayer().sendMessage(com.juanp.custommobs.mob.Texts.color(
                     "&cLa silla y la armadura de un mob custom las pone su definicion."));
         }
     }
+
+    /**
+     * Un dispensador tampoco equipa a un mob custom.
+     *
+     * <p>Un jugador puede construir uno delante de un mob y meterle armadura sin
+     * tocarle: es la rendija que queda cuando se bloquea el clic a mano.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onDispense(org.bukkit.event.block.BlockDispenseEvent event) {
+        org.bukkit.Material type = event.getItem().getType();
+        boolean gear = type == org.bukkit.Material.SADDLE
+                || type.name().endsWith("_HORSE_ARMOR")
+                || type.name().equals("WOLF_ARMOR")
+                || type == org.bukkit.Material.NAME_TAG;
+        if (!gear || !(event.getBlock().getBlockData()
+                instanceof org.bukkit.block.data.Directional directional)) {
+            return;
+        }
+        org.bukkit.block.Block target = event.getBlock().getRelative(directional.getFacing());
+        org.bukkit.Location center = target.getLocation().add(0.5D, 0.5D, 0.5D);
+        for (org.bukkit.entity.Entity entity
+                : target.getWorld().getNearbyEntities(center, 0.6D, 0.6D, 0.6D)) {
+            if (this.service.find(entity.getUniqueId()).isPresent()) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    /** Lo que un jugador no le da de comer a un mob custom. */
+    private static final java.util.Set<org.bukkit.Material> FEEDING = java.util.Set.of(
+            org.bukkit.Material.WHEAT, org.bukkit.Material.CARROT,
+            org.bukkit.Material.GOLDEN_CARROT, org.bukkit.Material.POTATO,
+            org.bukkit.Material.BAKED_POTATO, org.bukkit.Material.APPLE,
+            org.bukkit.Material.GOLDEN_APPLE, org.bukkit.Material.ENCHANTED_GOLDEN_APPLE,
+            org.bukkit.Material.HAY_BLOCK, org.bukkit.Material.SUGAR,
+            org.bukkit.Material.SWEET_BERRIES, org.bukkit.Material.GLOW_BERRIES,
+            org.bukkit.Material.BAMBOO, org.bukkit.Material.COOKIE,
+            org.bukkit.Material.DRIED_KELP, org.bukkit.Material.KELP,
+            org.bukkit.Material.SEAGRASS, org.bukkit.Material.COD,
+            org.bukkit.Material.SALMON, org.bukkit.Material.TROPICAL_FISH,
+            org.bukkit.Material.PUFFERFISH, org.bukkit.Material.CHICKEN,
+            org.bukkit.Material.BEEF, org.bukkit.Material.PORKCHOP,
+            org.bukkit.Material.MUTTON, org.bukkit.Material.RABBIT,
+            org.bukkit.Material.CRIMSON_FUNGUS, org.bukkit.Material.WARPED_FUNGUS);
 
     /**
      * Quien abra el inventario de una montura con alforjas no puede tocar la silla ni la
