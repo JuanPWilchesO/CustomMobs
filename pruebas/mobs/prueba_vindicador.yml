@@ -1,0 +1,34 @@
+id: prueba_vindicador
+# Vindicador de prueba, A PROPOSITO sin bloque 'equipment'.
+#
+# Con este solo se comprueban las DOS cosas de apariencia que quedaban:
+#   1) Que no herede equipo de fabrica. Un vindicador nace con un hacha de hierro;
+#      este debe salir con las MANOS VACIAS, porque su definicion no dice nada.
+#   2) Que no le salga la bandera de jefe de patrulla. Saca VARIOS y ninguno debe
+#      llevar estandarte encima.
+#
+# Probar:  /custommobs give prueba_vindicador   (varias veces, para el punto 2)
+# NO es contenido de juego.
+category: player
+display-name: '&5Vindicador de prueba'
+type: VINDICATOR
+egg: VINDICATOR_SPAWN_EGG
+glow: true
+burn-in-daylight: false
+ai: true
+
+attributes:
+  health: 40.0
+  damage: 1.0
+  speed: 0.25
+
+# Sin 'equipment': aqui esta la prueba. El mob aparece con lo que diga su definicion.
+
+recipe:
+  extras:
+    - GOLD_INGOT
+  amount: 0
+
+leash:
+  max-distance: 12.0
+  teleport-distance: 24.0
