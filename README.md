@@ -458,6 +458,10 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `spawner remove <id>` | borra un spawner y su mob |
 | `spawner removeall [mob]` | borra todos los spawners, o los de un mob |
 | `spawner reload` | relee `data/spawners.yml` sin reiniciar |
+| `book [jugador]` | entrega el libro de inspeccion (alias `libro`) |
+| `upgrade list` | lista los items de mejora cargados |
+| `upgrade give <id> [jugador]` | reparte un item de mejora (alias `mejora`) |
+| `upgrade reload` | relee `upgrades/` y rehace las recetas |
 
 **`recontar` vs `retirar`** — la diferencia es importante:
 
@@ -517,6 +521,37 @@ su chunk este descargado** — un conteo que solo mirase las entidades cargadas 
 saltaria el tope desplegando mobs por bloques repartidos.
 
 ---
+
+## Libro de inspeccion e items de mejora
+
+**El libro** muestra al jugador sus mobs con sus estadisticas de combate. Lo reparte solo
+un administrador (`/custommobs book`), pero **cualquiera puede usarlo**: asi el servidor lo
+puede vender o regalar desde su economia. Al usarlo se abre un libro con una pagina por mob
+(vida actual y maxima, ataque, velocidad, armadura y ubicacion) y tambien aparecen los mobs
+que el jugador tiene guardados en su huevo.
+
+**Los items de mejora** suben caracteristicas de combate. Se definen en `upgrades/`, uno por
+archivo:
+
+```yaml
+id: piedra_vida
+material: AMETHYST_SHARD
+display-name: '&dPiedra de vida'
+lore:
+  - '&7Se la das a un mob tuyo'
+stats:
+  health: 20.0          # cuanto sube, no el valor final
+recipe:
+  amount: 0             # 0 = solo por comando; 1+ = crafteable (sin forma)
+  extras: [DIAMOND, DIAMOND]
+```
+
+Solo se admiten caracteristicas de combate: `health`, `damage`, `speed`, `armor`,
+`armor-toughness`, `knockback-resistance`, `attack-speed` y `attack-knockback`.
+
+El jugador lo sostiene y hace **clic derecho sobre un mob suyo**: la mejora se aplica y el
+item se consume. Como el huevo guarda las desviaciones de atributos, **la mejora viaja con
+el mob** cuando se le recoge y se le vuelve a colocar.
 
 ## Configuracion general (`config.yml`)
 
@@ -625,6 +660,7 @@ api.spawn("guardia", location, ownerPlayer);      // invoca uno
 | `styles.yml` | color de nombre y brillo elegidos por jugador y por team |
 | `items/<nombre>.yml` | catalogo de objetos con NBT, uno por nombre |
 | `data/spawners.yml` | puntos de aparicion que sobreviven a la muerte del mob |
+| `upgrades/*.yml` | un archivo por item de mejora |
 
 El vinculo de cada mob (dueno, team, definicion, punto de aparicion) vive en el
 **PersistentDataContainer** de la entidad, asi que sobrevive reinicios sin archivo

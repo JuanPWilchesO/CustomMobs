@@ -55,6 +55,7 @@ cualquiera de ellos el plugin sigue funcionando: cada uno degrada por su cuenta.
 | `el-archivo-de-un-mob.md` | Referencia de todas las claves de `mobs/*.yml` |
 | `skills.md` | Efectos, objetivos, rango, cooldown y probabilidad |
 | `drops-y-objetos.md` | Tabla de drops y catalogo de objetos con NBT |
+| `libro-y-mejoras.md` | Libro de inspeccion e items de mejora de mobs |
 | `facciones-equipos-y-combate.md` | Facciones, Teams, actitudes y politica de ataque |
 | `anclas-spawners-y-huevo.md` | Leash, ancla, spawners y el ciclo de vida del huevo |
 | `comandos-permisos-y-cupos.md` | Comandos, permisos y cupo por grupo |

@@ -24,6 +24,10 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `spawner remove <id>` | borra un spawner y, si esta, su mob vivo |
 | `spawner removeall [mob]` | borra todos los spawners, o solo los de un mob |
 | `spawner reload` | relee `data/spawners.yml` sin reiniciar |
+| `book [jugador]` | entrega el libro de inspeccion (alias `libro`) |
+| `upgrade list` | lista los items de mejora cargados |
+| `upgrade give <id> [jugador]` | reparte un item de mejora (alias `mejora`) |
+| `upgrade reload` | relee `upgrades/` y rehace las recetas |
 
 Desde consola, `spawn` pide mundo y coordenadas: `/custommobs spawn <id> <mundo> <x> <y> <z>`.
 
