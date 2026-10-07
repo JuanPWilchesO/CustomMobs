@@ -31,15 +31,29 @@ public final class MountFrostTask extends BukkitRunnable {
         this.service = service;
     }
 
+    /** Para dejar una sola linea de diagnostico por arranque. */
+    private boolean reported;
+
     @Override
     public void run() {
+        int horses = 0;
+        int withFrost = 0;
         for (CustomMob customMob : this.service.active()) {
-            if (customMob.definition().mount() == null
-                    || !customMob.definition().mount().frostWalker()
-                    || !(customMob.entity() instanceof AbstractHorse horse)) {
+            if (!(customMob.entity() instanceof AbstractHorse horse)) {
                 continue;
             }
+            horses++;
+            if (customMob.definition().mount() == null
+                    || !customMob.definition().mount().frostWalker()) {
+                continue;
+            }
+            withFrost++;
             this.freeze(horse);
+        }
+        if (!this.reported) {
+            this.reported = true;
+            this.plugin.getLogger().info("[paso helado] caballos=" + horses
+                    + ", con paso helado=" + withFrost);
         }
     }
 

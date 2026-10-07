@@ -26,11 +26,14 @@ Ninguno se craftea (`recipe.amount: 0`): se invocan con
 
 | Archivo | Que prueba |
 |---|---|
-| `prueba_montura.yml` | La montura basica: huevo, domesticada, silla, montarse, cupo propio |
+| `prueba_montura.yml` | La montura **basica** — a proposito **sin efectos ni paso helado**: huevo, domesticada, silla, montarse, cupo propio |
 | `prueba_montura_helada.yml` | Variante, armadura, **paso helado**, **efectos** y una **skill pasiva** |
 | `prueba_fuego_amigo.yml` | **Sin fuego amigo**, **el dueno ataca y el mob va**, y **`despedir`** |
 
 ## Prueba 1 — Montura basica (`prueba_montura`)
+
+> **Esta NO tiene efectos ni paso helado.** Es la de `saddled`/`tamed` y nada mas: existe
+> para probar el ciclo del huevo y el cupo. Los efectos y el hielo son de `prueba_montura_helada`.
 
 1. `/custommobs give prueba_montura` y colocas el huevo.
 2. **Debe salir domesticada y con silla.** Subete con **clic derecho**, sin caerte.

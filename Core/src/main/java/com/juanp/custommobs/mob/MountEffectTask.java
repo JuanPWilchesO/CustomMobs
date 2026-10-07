@@ -38,13 +38,24 @@ public final class MountEffectTask extends BukkitRunnable {
         this.service = service;
     }
 
+    /** Para dejar una sola linea de diagnostico por arranque. */
+    private boolean reported;
+
     @Override
     public void run() {
+        int horses = 0;
+        int withEffects = 0;
+        int resolved = 0;
         for (CustomMob customMob : this.service.active()) {
-            List<MountEffect> effects = customMob.definition().mountEffects();
-            if (effects.isEmpty() || !(customMob.entity() instanceof AbstractHorse horse)) {
+            if (!(customMob.entity() instanceof AbstractHorse horse)) {
                 continue;
             }
+            horses++;
+            List<MountEffect> effects = customMob.definition().mountEffects();
+            if (effects.isEmpty()) {
+                continue;
+            }
+            withEffects++;
             for (MountEffect effect : effects) {
                 PotionEffectType type = this.typeOf(effect.potion());
                 if (type == null) {
@@ -70,7 +81,13 @@ public final class MountEffectTask extends BukkitRunnable {
                 } else {
                     horse.addPotionEffect(potion);
                 }
+                resolved++;
             }
+        }
+        if (!this.reported) {
+            this.reported = true;
+            this.plugin.getLogger().info("[montura] caballos=" + horses
+                    + ", con efectos=" + withEffects + ", efectos resueltos=" + resolved);
         }
     }
 

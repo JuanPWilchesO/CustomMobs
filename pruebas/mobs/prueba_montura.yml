@@ -3,7 +3,7 @@ id: prueba_montura
 # Sirve para el ciclo completo: huevo -> colocar -> subirse -> recoger -> volver a colocar.
 # NO es contenido de juego.
 category: mount
-display-name: '&6Montura de prueba'
+display-name: '&7Montura BASICA (sin efectos ni paso helado)'
 type: HORSE
 egg: HORSE_SPAWN_EGG
 burn-in-daylight: false
