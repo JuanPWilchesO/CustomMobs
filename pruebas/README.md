@@ -29,6 +29,7 @@ Ninguno se craftea (`recipe.amount: 0`): se invocan con
 | `prueba_montura.yml` | La montura **basica** — a proposito **sin efectos ni paso helado**: huevo, domesticada, silla, montarse, cupo propio |
 | `prueba_montura_helada.yml` | Variante, armadura, **paso helado**, **efectos** y una **skill pasiva** |
 | `prueba_fuego_amigo.yml` | **Sin fuego amigo**, **el dueno ataca y el mob va**, y **`despedir`** |
+| `prueba_natural.yml` | **Aparicion aleatoria**: brota solo cerca de ti, de una sola vida y sin dejar spawner |
 
 ## Prueba 1 — Montura basica (`prueba_montura`)
 

@@ -1,0 +1,39 @@
+id: prueba_natural
+# Mob de servidor que aparece SOLO por el mundo, al azar y cerca de los jugadores.
+# NO es contenido de juego.
+#
+# Probar:  /custommobs reload  y luego camina o espera ~1 minuto.
+#   - Debe brotar solo, a entre 16 y 48 bloques de ti, en la superficie.
+#   - Es de UNA SOLA VIDA: matalo y no vuelve en ese punto.
+#   - NO deja spawner: comprueba con /custommobs spawner list que su lista no crece.
+#   - Aleja a todos los jugadores: el propio Minecraft se lo lleva.
+category: server
+display-name: '&2Merodeador'
+type: ZOMBIE
+# Neutral: no te ataca, asi que puedes mirarlo con calma. Los mobs de faccion se pelean
+# entre ellos igual, que es lo otro que se puede observar.
+faction: orcos
+attitude: neutral
+burn-in-daylight: false
+ai: true
+
+attributes:
+  health: 20.0
+  damage: 3.0
+  speed: 0.25
+
+spawn:
+  natural: true
+  # Probabilidad alta a proposito: en produccion esto seria mucho mas bajo.
+  chance: 0.6
+  group:
+    min: 1
+    max: 3
+  time: any
+  light: { min: 0, max: 15 }
+  y: { min: 0, max: 320 }
+  distance:
+    min: 16.0
+    max: 48.0
+  # Tope de este mob en todo el mundo.
+  cap: 6
