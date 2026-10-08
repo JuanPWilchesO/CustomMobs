@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 — arreglo del paso helado
+
+- **Paso helado de las monturas**: el hielo se formaba un bloque **por debajo** de las
+  patas, asi que en agua honda la superficie seguia siendo agua y la montura **nadaba en
+  vez de caminar**. Ahora se congela la **superficie** —el agua que tiene algo que no es
+  agua encima, como el encantamiento— en una ventana de dos niveles alrededor de las patas,
+  y ademas **dos bloques por delante** en la direccion de la marcha, para que el suelo este
+  listo a galope.
+
 ## 0.2.0 — monturas, aparicion natural y mejoras
 
 - **Monturas** (`category: mount`): caballos y similares con variante, armadura, **efectos
