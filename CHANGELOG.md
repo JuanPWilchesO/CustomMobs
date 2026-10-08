@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.2 — el paso helado, de verdad
+
+- **Paso helado de las monturas**: la 0.2.1 lo arreglo a medias. Faltaban tres cosas, y
+  las tres solo se ven montando:
+  - el hielo **se propagaba hacia abajo**: al congelarse la superficie, el bloque de debajo
+    pasaba a tener hielo encima y tambien se congelaba, ciclo tras ciclo, hasta dejar bajo
+    el caballo una columna que lo atrapaba;
+  - al hundirse un poco, la superficie queda a su altura o por encima, y **congelarla ahi
+    lo encerraba** y lo asfixiaba entre bloques;
+  - a galope, o con un tiron de lag, congelar solo bajo las patas **llega tarde** y el
+    caballo acaba nadando.
+- Ahora solo se hiela el agua **con aire encima** (como el encantamiento), **por delante**
+  en la direccion de la marcha, y **nunca el hueco del caballo**. Dos claves nuevas por
+  montura: `frost-radius` (0 a 4, por defecto 2) y `frost-ahead` (0 a 8, por defecto 3).
+  La comprobacion pasa a cada tick.
+
 ## 0.2.1 — arreglo del paso helado
 
 - **Paso helado de las monturas**: el hielo se formaba un bloque **por debajo** de las
