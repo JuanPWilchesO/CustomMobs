@@ -392,7 +392,7 @@ public final class MobLoader {
                 parseMountEffects(section),
                 section.getBoolean("frost-walker", false),
                 Math.max(0, Math.min(4, section.getInt("frost-radius", 2))),
-                Math.max(0, Math.min(8, section.getInt("frost-ahead", 3))));
+                Math.max(0, Math.min(32, section.getInt("frost-ahead", 16))));
     }
 
     /** Los efectos constantes que reparte la montura: al mob, al jinete o a quien este cerca. */

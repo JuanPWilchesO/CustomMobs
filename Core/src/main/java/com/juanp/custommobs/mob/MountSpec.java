@@ -34,5 +34,5 @@ public record MountSpec(
 
     /** Lo que se aplica si el mob declara la categoria sin seccion {@code mount:}. */
     public static final MountSpec DEFAULT =
-            new MountSpec(null, null, true, true, null, List.of(), false, 2, 3);
+            new MountSpec(null, null, true, true, null, List.of(), false, 2, 16);
 }

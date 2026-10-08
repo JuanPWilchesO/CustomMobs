@@ -10,52 +10,83 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Paso helado de una montura: el agua que pisa se convierte en hielo escarchado.
  *
- * <p>Lo que importa es que el hielo este puesto <b>antes</b> de que el caballo llegue. Por
- * eso se mira cada tick, se hiela <b>por delante</b> un tramo que crece con la velocidad (si
- * va rapido, o el servidor da un tiron, un alcance fijo no llega) y se hiela tambien la
- * columna donde esta la montura, que es lo que la levanta cuando ya esta en el agua.
+ * <p>El trabajo no es helar, es <b>llegar a tiempo</b>. Y la leccion mas cara: si el propio
+ * plugin cuesta caro, el servidor va lento, y entonces el hielo llega tarde <b>por culpa del
+ * plugin</b>. Se mide en milisegundos de tick lo que se gana en bloques de delantal.
  *
- * <p>En cada columna se busca <b>la superficie</b> —el agua que tiene aire encima— dentro de
- * una ventana corta alrededor de las patas, y se hiela <b>un solo bloque</b>:
+ * <p>Por eso esta escrito para costar lo minimo:
  * <ul>
- *   <li>un solo bloque por columna, y con aire encima, evita que el hielo se propague hacia
- *       abajo y deje una columna que atrape al caballo;</li>
- *   <li>buscar la superficie <b>por columna</b> —y no a la altura de las patas— es lo que
- *       deja salir al caballo cuando se ha hundido y la superficie le queda por encima.</li>
+ *   <li>una sola lectura de bloque por columna, tirando del mapa de altura del mundo, en vez
+ *       de recorrer niveles a ciegas;</li>
+ *   <li>el derretimiento va en una cola, no en una tarea programada por bloque (que eran
+ *       miles de tareas pendientes);</li>
+ *   <li>las areas que se miran son pequenas: no hay delantales de decenas de bloques.</li>
  * </ul>
  *
- * <p>Solo se mira hasta <b>un bloque por encima de las patas</b>: mas arriba esta la cabeza,
- * y congelarla ahi encerraria a la montura.
+ * <p>Reglas del hielo, cada una por un fallo visto en produccion:
+ * <ul>
+ *   <li>nunca se hiela a la altura de las patas ni por encima: si la montura va algo hundida,
+ *       esa seria la altura de su cuerpo o su cabeza, y se asfixia;</li>
+ *   <li>nunca se hiela un bloque que solape a la montura: congelar dentro no la levanta
+ *       (Minecraft no expulsa entidades de un bloque), la deja clavada;</li>
+ *   <li>una sola capa por columna, y con aire encima: asi el hielo no se propaga hacia abajo.</li>
+ * </ul>
  */
 public final class MountFrostTask extends BukkitRunnable {
 
     /** Cuanto tarda en derretirse el hielo escarchado. */
-    private static final long MELT_TICKS = 200L;
+    private static final long MELT_TICKS = 400L;
 
-    /** Tope duro de bloques que se miran por delante, por mucha prisa que lleve. */
-    private static final int MAX_AHEAD = 8;
+    /** Radio del cerco que se mira alrededor de la montura. */
+    private static final int RADIUS = 2;
 
-    /** Tope duro del radio, para que un yml no hiele medio oceano de golpe. */
-    private static final int MAX_RADIUS = 4;
+    /** Delantal por delante, en bloques. */
+    private static final int AHEAD = 10;
 
-    /** Hasta donde se busca la superficie: un bloque por encima de las patas... */
-    private static final int WINDOW_UP = 1;
+    /** Bloques que se anade al delantal por cada tick que el server tenga la montura parada. */
+    private static final int STALL_BONUS = 1;
 
-    /** ...y dos por debajo. */
-    private static final int WINDOW_DOWN = 2;
+    /** Tope del delantal, para que un tiron de lag no dispare el coste. */
+    private static final int MAX_AHEAD = 20;
 
-    /** Ticks de margen al calcular el alcance por velocidad. */
-    private static final double SPEED_MARGIN_TICKS = 2.0D;
+    /** Hasta donde se mira de las patas hacia abajo. */
+    private static final int WINDOW_DOWN = 3;
 
     private final CustomMobsPlugin plugin;
     private final MobService service;
 
+    /** Ultima posicion de cada montura, para sacar el avance real entre ticks. */
+    private final Map<UUID, Location> lastPosition = new ConcurrentHashMap<>();
+
+    /** Ultimo rumbo real, para seguir helando cuando el server estanca la posicion. */
+    private final Map<UUID, Vector> lastHeading = new ConcurrentHashMap<>();
+
+    /** Ticks seguidos con la posicion del server parada, por montura. */
+    private final Map<UUID, Integer> stalledTicks = new ConcurrentHashMap<>();
+
+    /** Hielos puestos por el plugin, en orden, para ir derritiendolos. */
+    private final Deque<Frozen> frozen = new ArrayDeque<>();
+
+    /** Reloj propio, en ticks de esta tarea. */
+    private long clock;
+
     /** DIAGNOSTICO: bloques helados desde el ultimo informe. */
     private int frozenSinceReport;
+    private double maxStepSinceReport;
     private long lastReport = System.currentTimeMillis();
+
+    /** Un bloque de hielo puesto por el plugin, con el tick en que se puso. */
+    private record Frozen(World world, int x, int y, int z, long tick) {
+    }
 
     public MountFrostTask(CustomMobsPlugin plugin, MobService service) {
         this.plugin = plugin;
@@ -64,6 +95,8 @@ public final class MountFrostTask extends BukkitRunnable {
 
     @Override
     public void run() {
+        this.clock++;
+        this.meltExpired();
         int horses = 0;
         int withFrost = 0;
         for (CustomMob customMob : this.service.active()) {
@@ -78,10 +111,25 @@ public final class MountFrostTask extends BukkitRunnable {
             withFrost++;
             this.freeze(horse, spec);
         }
+        this.lastPosition.keySet().removeIf(key -> this.service.find(key).isEmpty());
+        this.lastHeading.keySet().removeIf(key -> this.service.find(key).isEmpty());
+        this.stalledTicks.keySet().removeIf(key -> this.service.find(key).isEmpty());
         this.report(horses, withFrost);
     }
 
-    /** DIAGNOSTICO (solo con debug): cuantos bloques se helaron en el ultimo segundo. */
+    /** Derrite el hielo que ya cumplio su tiempo. En cola: lo mas viejo primero. */
+    private void meltExpired() {
+        while (!this.frozen.isEmpty()
+                && this.clock - this.frozen.peekFirst().tick() >= MELT_TICKS) {
+            Frozen item = this.frozen.pollFirst();
+            Block block = item.world().getBlockAt(item.x(), item.y(), item.z());
+            if (block.getType() == Material.FROSTED_ICE) {
+                block.setType(Material.WATER);
+            }
+        }
+    }
+
+    /** DIAGNOSTICO (solo con debug): hielo por segundo y avance maximo por tick. */
     private void report(int horses, int withFrost) {
         if (!this.plugin.config().debug()) {
             return;
@@ -91,43 +139,65 @@ public final class MountFrostTask extends BukkitRunnable {
             return;
         }
         this.plugin.getLogger().info("[paso helado] caballos=" + horses
-                + " conPaso=" + withFrost + " helados=" + this.frozenSinceReport + "/s");
+                + " conPaso=" + withFrost + " helados=" + this.frozenSinceReport
+                + "/s avanceMax=" + String.format("%.2f", this.maxStepSinceReport) + "/tick"
+                + " vivas=" + this.frozen.size());
         this.frozenSinceReport = 0;
+        this.maxStepSinceReport = 0.0D;
         this.lastReport = now;
     }
 
-    /** Hiela el agua que la montura va a pisar: bajo las patas y por delante. */
+    /** Hiela el agua que la montura va a pisar: bajo las patas y un delantal por delante. */
     private void freeze(AbstractHorse horse, MountSpec spec) {
         World world = horse.getWorld();
         Location at = horse.getLocation();
-        int radius = Math.max(0, Math.min(MAX_RADIUS, spec.frostRadius()));
-
-        Vector heading = horse.getVelocity();
-        heading.setY(0.0D);
-        double speed = heading.length();
-        if (speed < 1.0E-4D) {
-            heading = at.getDirection();
-            heading.setY(0.0D);
+        // Si ya esta dentro del agua no se hiela nada: helar la superficie a su altura le
+        // levantaria un pozo rodeado de hielo del que, nadando, no puede salir.
+        if (at.getBlock().getType() == Material.WATER) {
+            return;
         }
-        // El alcance crece con la velocidad: dos ticks de margen, por si el servidor da un
-        // tiron y el caballo avanza de golpe.
-        int bySpeed = (int) Math.ceil(speed * SPEED_MARGIN_TICKS) + 1;
-        int ahead = Math.min(MAX_AHEAD, Math.max(spec.frostAhead(), bySpeed));
 
-        // El cuerpo del caballo: donde cae esto no se pone hielo. Congelar dentro no lo
-        // levanta —Minecraft no expulsa entidades de un bloque— sino que lo deja atrapado.
         BoundingBox body = horse.getBoundingBox();
+        this.freezeArea(world, at.getBlockX(), at.getBlockY(), at.getBlockZ(), RADIUS, body);
 
-        this.freezeArea(world, at.getBlockX(), at.getBlockY(), at.getBlockZ(), radius, body);
-        if (heading.lengthSquared() > 1.0E-4D) {
-            heading.normalize();
-            for (int step = 1; step <= ahead; step++) {
-                this.freezeArea(world,
-                        at.getBlockX() + (int) Math.round(heading.getX() * step),
-                        at.getBlockY(),
-                        at.getBlockZ() + (int) Math.round(heading.getZ() * step),
-                        radius, body);
+        // Avance real desde el tick anterior.
+        Location previous = this.lastPosition.put(horse.getUniqueId(), at.clone());
+        Vector step = null;
+        if (previous != null && previous.getWorld() == world) {
+            Vector delta = at.toVector().subtract(previous.toVector());
+            delta.setY(0.0D);
+            if (delta.lengthSquared() > 1.0E-4D) {
+                step = delta;
             }
+        }
+        UUID id = horse.getUniqueId();
+        int stalled;
+        if (step != null) {
+            this.maxStepSinceReport = Math.max(this.maxStepSinceReport, step.length());
+            step.normalize();
+            this.lastHeading.put(id, step.clone());
+            stalled = 0;
+        } else {
+            Vector heading = this.lastHeading.get(id);
+            if (heading == null) {
+                heading = at.getDirection();
+                heading.setY(0.0D);
+            }
+            if (heading.lengthSquared() < 1.0E-4D) {
+                return;
+            }
+            step = heading.clone();
+            stalled = Math.min(MAX_AHEAD, this.stalledTicks.merge(id, 1, Integer::sum));
+        }
+        this.stalledTicks.put(id, stalled);
+
+        // El delantal crece con el retraso del servidor: mientras tenga la montura parada, se
+        // sigue helando hacia donde iba, cada tick un poco mas lejos.
+        int ahead = Math.min(MAX_AHEAD, AHEAD + stalled * STALL_BONUS);
+        for (int index = 1; index <= ahead; index++) {
+            int x = at.getBlockX() + (int) Math.round(step.getX() * index);
+            int z = at.getBlockZ() + (int) Math.round(step.getZ() * index);
+            this.freezeArea(world, x, at.getBlockY(), z, 1, body);
         }
     }
 
@@ -142,37 +212,27 @@ public final class MountFrostTask extends BukkitRunnable {
     }
 
     /**
-     * Busca en una columna la superficie del agua —el agua con aire encima— dentro de la
-     * ventana y hiela <b>ese</b> bloque, uno solo.
+     * Hiela la superficie del agua de una columna, si procede.
+     *
+     * <p>Se usa el mapa de altura del mundo para saber donde acaba el agua: una lectura por
+     * columna en vez de recorrer niveles a ciegas. Recorrer el nivel cuesta; y si el plugin
+     * cuesta, el servidor va lento y el hielo llega tarde.
      */
     private void freezeColumn(World world, int x, int feetY, int z, BoundingBox body) {
-        for (int y = feetY + WINDOW_UP; y >= feetY - WINDOW_DOWN; y--) {
-            Block block = world.getBlockAt(x, y, z);
-            if (block.getType() != Material.WATER) {
-                continue;
-            }
-            if (!world.getBlockAt(x, y + 1, z).getType().isAir()) {
-                continue; // no es la superficie: hay algo encima
-            }
-            BoundingBox cell = new BoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
-            if (body.overlaps(cell)) {
-                continue; // ahi esta el caballo: esa columna se deja en paz
-            }
-            this.ice(block);
-            return; // una por columna: asi el hielo no se propaga hacia abajo
+        int y = world.getHighestBlockYAt(x, z);
+        if (y > feetY - 1 || y < feetY - WINDOW_DOWN) {
+            return; // fuera de la ventana: ni por encima de las patas, ni demasiado abajo
         }
-    }
-
-    /** Convierte el bloque en hielo escarchado y programa su derretimiento. */
-    private void ice(Block block) {
+        Block block = world.getBlockAt(x, y, z);
+        if (block.getType() != Material.WATER) {
+            return;
+        }
+        BoundingBox cell = new BoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
+        if (body.overlaps(cell)) {
+            return; // ahi esta la montura
+        }
         block.setType(Material.FROSTED_ICE);
+        this.frozen.addLast(new Frozen(world, x, y, z, this.clock));
         this.frozenSinceReport++;
-        this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () -> {
-            // Solo se derrite si sigue siendo hielo nuestro: si el servidor ya lo cambio,
-            // no se pisa esa decision.
-            if (block.getType() == Material.FROSTED_ICE) {
-                block.setType(Material.WATER);
-            }
-        }, MELT_TICKS);
     }
 }

@@ -85,25 +85,33 @@ sus **aliados**. Regalar resistencia al fuego a un desconocido no es lo que se p
 
 Con `frost-walker: true`, el agua que la montura pisa **se convierte en hielo escarchado**,
 como el encantamiento de botas. Se hiela el bloque justo bajo las patas —y los contiguos,
-como el encantamiento— y el hielo **se derrite solo a los ~10 segundos**.
+como el encantamiento— y el hielo **se derrite solo a los ~20 segundos**.
 
 No es una pocion (eso no existe): es el efecto del encantamiento hecho a mano.
 
-### Ajustarlo
+### Aviso: funcion experimental
 
-| Campo | Que hace | Por defecto |
-|---|---|---|
-| `frost-walker` | activa el paso helado | `false` |
-| `frost-radius` | radio, en bloques, del hielo que deja (0 a 4) | `2` |
-| `frost-ahead` | cuantos bloques por delante hiela (0 a 8) | `3` |
+**El paso helado puede fallar, y no es un fallo que se arregle con configuracion: depende del
+rendimiento del servidor.**
 
-El hielo se pone **por delante**, en la direccion de la marcha: si el caballo corre, o el
-servidor da un tiron, no le da tiempo a llegar al agua antes de que el hielo aparezca y
-acaba nadando. Sube `frost-ahead` si montas rapido o el servidor va cargado.
+El hielo tiene que estar puesto **antes** de que la montura llegue, y eso se decide cada
+tick. Si el servidor va cargado (TPS bajo), o hay **lag de red**, el hielo llega tarde: la
+montura pisa agua que ya deberia estar helada y se cae. A galope se nota mucho mas que al
+paso, y con ping alto es esperable que falle directamente.
 
-Solo se hiela **la superficie** del agua (la que tiene aire encima), como el encantamiento,
-y **nunca el hueco donde esta el caballo**: asi el hielo no se propaga hacia abajo ni lo
-deja encerrado entre bloques.
+Reglas que conviene conocer antes de usarlo:
+
+- **Solo hiela la superficie** del agua (la que tiene aire encima), como el encantamiento.
+- **Nunca hiela a la altura de las patas ni por encima**, para no encerrar a la montura.
+- **Mientras la montura ya esta dentro del agua no hiela nada** a su alrededor: helar a su
+altura le levantaria un pozo rodeado de hielo del que, nadando, no puede salir.
+- **No se le puede ajustar el area a mano.** El plugin decide por su cuenta cuanto hielo
+  poner, segun la velocidad de la montura y el retraso del servidor, buscando el mejor
+  equilibrio entre llegar a tiempo y no hundir el servidor. Cuanto mejor vaya el servidor,
+  mejor funciona.
+
+Las claves `frost-radius` y `frost-ahead` se siguen leyendo del yml, pero **hoy no se usan**:
+se reservan por si hacen falta mas adelante.
 
 ## Las monturas NO se teletransportan
 

@@ -64,7 +64,11 @@ mount:
   frost-walker: true
 ```
 
-Subete y camina sobre el agua: se hiela bajo las patas y se derrite a los pocos segundos.
+Subete y camina sobre el agua: se hiela bajo las patas y se derrite al cabo de un rato.
+
+> **Ojo**: el paso helado es una funcion **experimental**. Depende de que el servidor vaya
+> fino; con lag o TPS bajo el hielo llega tarde y la montura se cae al agua. Los detalles,
+> en `../docs/monturas.md`.
 
 ## 5. El cupo es aparte
 
