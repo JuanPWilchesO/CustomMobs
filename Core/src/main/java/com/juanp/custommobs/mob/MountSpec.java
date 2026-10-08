@@ -17,6 +17,8 @@ import java.util.List;
  * @param armor   material de la armadura de caballo, o {@code null}
  * @param effects efectos constantes que reparte la montura mientras vive
  * @param frostWalker si el agua que pisa se convierte en hielo escarchado
+ * @param frostRadius radio, en bloques, del hielo que va dejando
+ * @param frostAhead cuantos bloques por delante se hiela, ademas de bajo las patas
  */
 public record MountSpec(
         String color,
@@ -25,10 +27,12 @@ public record MountSpec(
         boolean tamed,
         Material armor,
         List<MountEffect> effects,
-        boolean frostWalker
+        boolean frostWalker,
+        int frostRadius,
+        int frostAhead
 ) {
 
     /** Lo que se aplica si el mob declara la categoria sin seccion {@code mount:}. */
     public static final MountSpec DEFAULT =
-            new MountSpec(null, null, true, true, null, List.of(), false);
+            new MountSpec(null, null, true, true, null, List.of(), false, 2, 3);
 }

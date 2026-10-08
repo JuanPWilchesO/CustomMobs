@@ -7,25 +7,44 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractHorse;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
 /**
  * Paso helado de una montura: el agua que pisa se convierte en hielo escarchado.
  *
  * <p>No es una pocion —eso no existe— sino el mismo efecto del encantamiento de botas,
- * hecho aqui a mano: se mira el bloque bajo la montura y, si es agua, se hiela; el hielo se
+ * hecho aqui a mano: se mira el agua de la superficie y, si la hay, se hiela; el hielo se
  * deja derretir al cabo de unos segundos.
+ *
+ * <p>Tres cosas aprendidas a golpes, y las tres estan aqui:
+ * <ul>
+ *   <li>solo se hiela la <b>superficie</b> (agua con aire encima). Si no, el hielo se
+ *       propaga hacia abajo cada ciclo y acaba dejando una columna que atrapa al caballo;</li>
+ *   <li>se hiela <b>por delante</b>, en la direccion de la marcha: a galope —o con un tiron
+ *       de lag— el caballo llega al agua antes de que el hielo aparezca;</li>
+ *   <li>nunca se pone hielo <b>donde esta el caballo</b>. Al hundirse un poco, la superficie
+ *       queda a su altura o por encima, y congelarla ahi lo encerraba y lo asfixiaba.</li>
+ * </ul>
+ *
+ * <p>El radio y el alcance los fija cada montura en su yml.
  */
 public final class MountFrostTask extends BukkitRunnable {
-
-    /** Radio alrededor de la montura, como el encantamiento. */
-    private static final int RADIUS = 1;
 
     /** Cuanto tarda en derretirse el hielo escarchado. */
     private static final long MELT_TICKS = 200L;
 
-    /** Cuantos bloques por delante se hiela, para que el suelo este listo al llegar. */
-    private static final int AHEAD = 2;
+    /** Tope duro de bloques que se miran por delante, por mucha prisa que lleve. */
+    private static final int MAX_AHEAD = 8;
+
+    /** Tope duro del radio, para que un yml no hiele medio oceano de golpe. */
+    private static final int MAX_RADIUS = 4;
+
+    /** Cuanto se mira por encima de las patas: cubre la superficie cuando va algo hundido. */
+    private static final int WINDOW_UP = 1;
+
+    /** Cuanto se mira por debajo: el suelo que va pisando. */
+    private static final int WINDOW_DOWN = 3;
 
     private final CustomMobsPlugin plugin;
     private final MobService service;
@@ -47,12 +66,12 @@ public final class MountFrostTask extends BukkitRunnable {
                 continue;
             }
             horses++;
-            if (customMob.definition().mount() == null
-                    || !customMob.definition().mount().frostWalker()) {
+            MountSpec spec = customMob.definition().mount();
+            if (spec == null || !spec.frostWalker()) {
                 continue;
             }
             withFrost++;
-            this.freeze(horse);
+            this.freeze(horse, spec);
         }
         // Diagnostico: solo con 'debug' encendido.
         if (!this.reported && this.plugin.config().debug()) {
@@ -63,52 +82,68 @@ public final class MountFrostTask extends BukkitRunnable {
     }
 
     /**
-     * Hiela la superficie del agua que la montura va a pisar.
-     *
-     * <p>Se congela la <b>superficie</b> —el agua que tiene aire encima—, no el bloque de
-     * debajo: si el caballo va nadando, un bloque mas abajo sigue siendo agua profunda y la
-     * superficie nunca se hace suelo. Es lo que hace el encantamiento. Ademas se mira un
-     * poco por delante, en la direccion de la marcha, para que el hielo este listo antes de
-     * que llegue: a galope, congelar solo bajo las patas se queda corto.
+     * Hiela el agua que la montura va a pisar: bajo las patas y una fila por delante, en la
+     * direccion de la marcha.
      */
-    private void freeze(AbstractHorse horse) {
+    private void freeze(AbstractHorse horse, MountSpec spec) {
         World world = horse.getWorld();
         Location at = horse.getLocation();
-        this.freezeAt(world, at.getBlockX(), at.getBlockY(), at.getBlockZ());
+        int radius = Math.max(0, Math.min(MAX_RADIUS, spec.frostRadius()));
+        int ahead = Math.max(0, Math.min(MAX_AHEAD, spec.frostAhead()));
+        // El cuerpo del caballo: donde cae esto no se pone hielo, para no encerrarlo.
+        BoundingBox body = horse.getBoundingBox();
 
-        Vector heading = at.getDirection().setY(0.0D);
-        if (heading.lengthSquared() > 1.0E-4D) {
-            heading.normalize();
-            int aheadX = at.getBlockX() + (int) Math.round(heading.getX() * AHEAD);
-            int aheadZ = at.getBlockZ() + (int) Math.round(heading.getZ() * AHEAD);
-            if (aheadX != at.getBlockX() || aheadZ != at.getBlockZ()) {
-                this.freezeAt(world, aheadX, at.getBlockY(), aheadZ);
-            }
+        this.freezeAt(world, at.getBlockX(), at.getBlockY(), at.getBlockZ(), radius, body);
+
+        Vector heading = horse.getVelocity();
+        heading.setY(0.0D);
+        if (heading.lengthSquared() < 1.0E-4D) {
+            // Quieta: se usa hacia donde mira, que es a donde saldra.
+            heading = at.getDirection();
+            heading.setY(0.0D);
+        }
+        if (heading.lengthSquared() < 1.0E-4D) {
+            return;
+        }
+        heading.normalize();
+        for (int step = 1; step <= ahead; step++) {
+            int x = at.getBlockX() + (int) Math.round(heading.getX() * step);
+            int z = at.getBlockZ() + (int) Math.round(heading.getZ() * step);
+            this.freezeAt(world, x, at.getBlockY(), z, radius, body);
         }
     }
 
     /** Hiela la superficie del agua alrededor de un punto, a la altura de las patas. */
-    private void freezeAt(World world, int centerX, int centerY, int centerZ) {
-        for (int dx = -RADIUS; dx <= RADIUS; dx++) {
-            for (int dz = -RADIUS; dz <= RADIUS; dz++) {
-                for (int dy = -1; dy <= 1; dy++) {
-                    this.freezeSurface(world, centerX + dx, centerY + dy, centerZ + dz);
+    private void freezeAt(World world, int centerX, int centerY, int centerZ, int radius,
+                          BoundingBox body) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                for (int dy = WINDOW_UP; dy >= -WINDOW_DOWN; dy--) {
+                    this.freezeSurface(world, centerX + dx, centerY + dy, centerZ + dz, body);
                 }
             }
         }
     }
 
     /**
-     * Convierte en hielo escarchado un bloque de agua, siempre que sea <b>superficie</b>
-     * —con algo que no sea agua encima—; es lo que deja suelo firme donde pisar.
+     * Convierte en hielo escarchado un bloque de agua, siempre que sea la <b>superficie</b>
+     * —con aire encima, como exige el encantamiento— y que la montura no este ocupando ese
+     * hueco.
+     *
+     * <p>La condicion del aire evita que el hielo se propague hacia abajo; la del cuerpo
+     * evita meterlo dentro del caballo. Las dos sonaron mal en produccion.
      */
-    private void freezeSurface(World world, int x, int y, int z) {
+    private void freezeSurface(World world, int x, int y, int z, BoundingBox body) {
         Block block = world.getBlockAt(x, y, z);
         if (block.getType() != Material.WATER) {
             return;
         }
-        if (world.getBlockAt(x, y + 1, z).getType() == Material.WATER) {
-            return; // no es la superficie: hay agua encima
+        if (!world.getBlockAt(x, y + 1, z).getType().isAir()) {
+            return; // no es la superficie: hay algo encima
+        }
+        BoundingBox cell = new BoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
+        if (body.overlaps(cell)) {
+            return; // ahi esta la montura: congelarlo la encerraria
         }
         block.setType(Material.FROSTED_ICE);
         this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () -> {

@@ -89,6 +89,22 @@ como el encantamiento— y el hielo **se derrite solo a los ~10 segundos**.
 
 No es una pocion (eso no existe): es el efecto del encantamiento hecho a mano.
 
+### Ajustarlo
+
+| Campo | Que hace | Por defecto |
+|---|---|---|
+| `frost-walker` | activa el paso helado | `false` |
+| `frost-radius` | radio, en bloques, del hielo que deja (0 a 4) | `2` |
+| `frost-ahead` | cuantos bloques por delante hiela (0 a 8) | `3` |
+
+El hielo se pone **por delante**, en la direccion de la marcha: si el caballo corre, o el
+servidor da un tiron, no le da tiempo a llegar al agua antes de que el hielo aparezca y
+acaba nadando. Sube `frost-ahead` si montas rapido o el servidor va cargado.
+
+Solo se hiela **la superficie** del agua (la que tiene aire encima), como el encantamiento,
+y **nunca el hueco donde esta el caballo**: asi el hielo no se propaga hacia abajo ni lo
+deja encerrado entre bloques.
+
 ## Las monturas NO se teletransportan
 
 Es la diferencia con los demas mobs anclados al dueno, y es deliberado:

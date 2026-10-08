@@ -194,9 +194,10 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.mountEffects = new MountEffectTask(this, this.mobService);
         this.mountEffects.runTaskTimer(this, 20L, 20L);
 
-        // Paso helado: va mas seguido que los efectos, porque la montura se mueve.
+        // Paso helado: cada tick, porque la montura se mueve y cada tick cuenta para
+        // que el hielo este puesto antes de que llegue.
         this.mountFrost = new MountFrostTask(this, this.mobService);
-        this.mountFrost.runTaskTimer(this, 2L, 2L);
+        this.mountFrost.runTaskTimer(this, 1L, 1L);
 
         // Aparicion aleatoria de mobs de servidor, si alguno la pide en su yml.
         this.naturalSpawn = new NaturalSpawnTask(this, this.mobService, this.registry);
