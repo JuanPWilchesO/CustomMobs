@@ -13,21 +13,22 @@ import org.bukkit.util.Vector;
 /**
  * Paso helado de una montura: el agua que pisa se convierte en hielo escarchado.
  *
- * <p>No es una pocion —eso no existe— sino el mismo efecto del encantamiento de botas,
- * hecho aqui a mano: se mira el agua de la superficie y, si la hay, se hiela; el hielo se
- * deja derretir al cabo de unos segundos.
+ * <p>Lo que importa es que el hielo este puesto <b>antes</b> de que el caballo llegue. Por
+ * eso se mira cada tick, se hiela <b>por delante</b> un tramo que crece con la velocidad (si
+ * va rapido, o el servidor da un tiron, un alcance fijo no llega) y se hiela tambien la
+ * columna donde esta la montura, que es lo que la levanta cuando ya esta en el agua.
  *
- * <p>Tres cosas aprendidas a golpes, y las tres estan aqui:
+ * <p>En cada columna se busca <b>la superficie</b> —el agua que tiene aire encima— dentro de
+ * una ventana corta alrededor de las patas, y se hiela <b>un solo bloque</b>:
  * <ul>
- *   <li>solo se hiela la <b>superficie</b> (agua con aire encima). Si no, el hielo se
- *       propaga hacia abajo cada ciclo y acaba dejando una columna que atrapa al caballo;</li>
- *   <li>se hiela <b>por delante</b>, en la direccion de la marcha: a galope —o con un tiron
- *       de lag— el caballo llega al agua antes de que el hielo aparezca;</li>
- *   <li>nunca se pone hielo <b>donde esta el caballo</b>. Al hundirse un poco, la superficie
- *       queda a su altura o por encima, y congelarla ahi lo encerraba y lo asfixiaba.</li>
+ *   <li>un solo bloque por columna, y con aire encima, evita que el hielo se propague hacia
+ *       abajo y deje una columna que atrape al caballo;</li>
+ *   <li>buscar la superficie <b>por columna</b> —y no a la altura de las patas— es lo que
+ *       deja salir al caballo cuando se ha hundido y la superficie le queda por encima.</li>
  * </ul>
  *
- * <p>El radio y el alcance los fija cada montura en su yml.
+ * <p>Solo se mira hasta <b>un bloque por encima de las patas</b>: mas arriba esta la cabeza,
+ * y congelarla ahi encerraria a la montura.
  */
 public final class MountFrostTask extends BukkitRunnable {
 
@@ -40,22 +41,26 @@ public final class MountFrostTask extends BukkitRunnable {
     /** Tope duro del radio, para que un yml no hiele medio oceano de golpe. */
     private static final int MAX_RADIUS = 4;
 
-    /** Cuanto se mira por encima de las patas: cubre la superficie cuando va algo hundido. */
+    /** Hasta donde se busca la superficie: un bloque por encima de las patas... */
     private static final int WINDOW_UP = 1;
 
-    /** Cuanto se mira por debajo: el suelo que va pisando. */
-    private static final int WINDOW_DOWN = 3;
+    /** ...y dos por debajo. */
+    private static final int WINDOW_DOWN = 2;
+
+    /** Ticks de margen al calcular el alcance por velocidad. */
+    private static final double SPEED_MARGIN_TICKS = 2.0D;
 
     private final CustomMobsPlugin plugin;
     private final MobService service;
+
+    /** DIAGNOSTICO: bloques helados desde el ultimo informe. */
+    private int frozenSinceReport;
+    private long lastReport = System.currentTimeMillis();
 
     public MountFrostTask(CustomMobsPlugin plugin, MobService service) {
         this.plugin = plugin;
         this.service = service;
     }
-
-    /** Para dejar una sola linea de diagnostico por arranque. */
-    private boolean reported;
 
     @Override
     public void run() {
@@ -73,79 +78,95 @@ public final class MountFrostTask extends BukkitRunnable {
             withFrost++;
             this.freeze(horse, spec);
         }
-        // Diagnostico: solo con 'debug' encendido.
-        if (!this.reported && this.plugin.config().debug()) {
-            this.reported = true;
-            this.plugin.getLogger().info("[paso helado] caballos=" + horses
-                    + ", con paso helado=" + withFrost);
-        }
+        this.report(horses, withFrost);
     }
 
-    /**
-     * Hiela el agua que la montura va a pisar: bajo las patas y una fila por delante, en la
-     * direccion de la marcha.
-     */
+    /** DIAGNOSTICO (solo con debug): cuantos bloques se helaron en el ultimo segundo. */
+    private void report(int horses, int withFrost) {
+        if (!this.plugin.config().debug()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - this.lastReport < 1000L) {
+            return;
+        }
+        this.plugin.getLogger().info("[paso helado] caballos=" + horses
+                + " conPaso=" + withFrost + " helados=" + this.frozenSinceReport + "/s");
+        this.frozenSinceReport = 0;
+        this.lastReport = now;
+    }
+
+    /** Hiela el agua que la montura va a pisar: bajo las patas y por delante. */
     private void freeze(AbstractHorse horse, MountSpec spec) {
         World world = horse.getWorld();
         Location at = horse.getLocation();
         int radius = Math.max(0, Math.min(MAX_RADIUS, spec.frostRadius()));
-        int ahead = Math.max(0, Math.min(MAX_AHEAD, spec.frostAhead()));
-        // El cuerpo del caballo: donde cae esto no se pone hielo, para no encerrarlo.
-        BoundingBox body = horse.getBoundingBox();
-
-        this.freezeAt(world, at.getBlockX(), at.getBlockY(), at.getBlockZ(), radius, body);
 
         Vector heading = horse.getVelocity();
         heading.setY(0.0D);
-        if (heading.lengthSquared() < 1.0E-4D) {
-            // Quieta: se usa hacia donde mira, que es a donde saldra.
+        double speed = heading.length();
+        if (speed < 1.0E-4D) {
             heading = at.getDirection();
             heading.setY(0.0D);
         }
-        if (heading.lengthSquared() < 1.0E-4D) {
-            return;
-        }
-        heading.normalize();
-        for (int step = 1; step <= ahead; step++) {
-            int x = at.getBlockX() + (int) Math.round(heading.getX() * step);
-            int z = at.getBlockZ() + (int) Math.round(heading.getZ() * step);
-            this.freezeAt(world, x, at.getBlockY(), z, radius, body);
+        // El alcance crece con la velocidad: dos ticks de margen, por si el servidor da un
+        // tiron y el caballo avanza de golpe.
+        int bySpeed = (int) Math.ceil(speed * SPEED_MARGIN_TICKS) + 1;
+        int ahead = Math.min(MAX_AHEAD, Math.max(spec.frostAhead(), bySpeed));
+
+        // El cuerpo del caballo: donde cae esto no se pone hielo. Congelar dentro no lo
+        // levanta —Minecraft no expulsa entidades de un bloque— sino que lo deja atrapado.
+        BoundingBox body = horse.getBoundingBox();
+
+        this.freezeArea(world, at.getBlockX(), at.getBlockY(), at.getBlockZ(), radius, body);
+        if (heading.lengthSquared() > 1.0E-4D) {
+            heading.normalize();
+            for (int step = 1; step <= ahead; step++) {
+                this.freezeArea(world,
+                        at.getBlockX() + (int) Math.round(heading.getX() * step),
+                        at.getBlockY(),
+                        at.getBlockZ() + (int) Math.round(heading.getZ() * step),
+                        radius, body);
+            }
         }
     }
 
-    /** Hiela la superficie del agua alrededor de un punto, a la altura de las patas. */
-    private void freezeAt(World world, int centerX, int centerY, int centerZ, int radius,
-                          BoundingBox body) {
+    /** Hiela la superficie del agua en cada columna de un cuadrado alrededor del punto. */
+    private void freezeArea(World world, int centerX, int feetY, int centerZ, int radius,
+                           BoundingBox body) {
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
-                for (int dy = WINDOW_UP; dy >= -WINDOW_DOWN; dy--) {
-                    this.freezeSurface(world, centerX + dx, centerY + dy, centerZ + dz, body);
-                }
+                this.freezeColumn(world, centerX + dx, feetY, centerZ + dz, body);
             }
         }
     }
 
     /**
-     * Convierte en hielo escarchado un bloque de agua, siempre que sea la <b>superficie</b>
-     * —con aire encima, como exige el encantamiento— y que la montura no este ocupando ese
-     * hueco.
-     *
-     * <p>La condicion del aire evita que el hielo se propague hacia abajo; la del cuerpo
-     * evita meterlo dentro del caballo. Las dos sonaron mal en produccion.
+     * Busca en una columna la superficie del agua —el agua con aire encima— dentro de la
+     * ventana y hiela <b>ese</b> bloque, uno solo.
      */
-    private void freezeSurface(World world, int x, int y, int z, BoundingBox body) {
-        Block block = world.getBlockAt(x, y, z);
-        if (block.getType() != Material.WATER) {
-            return;
+    private void freezeColumn(World world, int x, int feetY, int z, BoundingBox body) {
+        for (int y = feetY + WINDOW_UP; y >= feetY - WINDOW_DOWN; y--) {
+            Block block = world.getBlockAt(x, y, z);
+            if (block.getType() != Material.WATER) {
+                continue;
+            }
+            if (!world.getBlockAt(x, y + 1, z).getType().isAir()) {
+                continue; // no es la superficie: hay algo encima
+            }
+            BoundingBox cell = new BoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
+            if (body.overlaps(cell)) {
+                continue; // ahi esta el caballo: esa columna se deja en paz
+            }
+            this.ice(block);
+            return; // una por columna: asi el hielo no se propaga hacia abajo
         }
-        if (!world.getBlockAt(x, y + 1, z).getType().isAir()) {
-            return; // no es la superficie: hay algo encima
-        }
-        BoundingBox cell = new BoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
-        if (body.overlaps(cell)) {
-            return; // ahi esta la montura: congelarlo la encerraria
-        }
+    }
+
+    /** Convierte el bloque en hielo escarchado y programa su derretimiento. */
+    private void ice(Block block) {
         block.setType(Material.FROSTED_ICE);
+        this.frozenSinceReport++;
         this.plugin.getServer().getScheduler().runTaskLater(this.plugin, () -> {
             // Solo se derrite si sigue siendo hielo nuestro: si el servidor ya lo cambio,
             // no se pisa esa decision.
