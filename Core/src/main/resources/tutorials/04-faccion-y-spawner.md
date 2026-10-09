@@ -66,3 +66,34 @@ Desde el juego lo coloca donde estas; desde consola, `/custommobs spawn orco <mu
 
 Coloca un mob de `humanos` cerca: se atacaran solos. Los de la **misma faccion o aliadas**
 son intocables. Ver `../docs/facciones-equipos-y-combate.md`.
+
+## 6. Faccion para un jugador
+
+Un administrador puede meter a un jugador en una faccion:
+
+```
+/custommobs faction set <jugador> <faccion>
+```
+
+A partir de ahi, los mobs de faccion lo tratan por `factions.yml`: **misma faccion o aliada =
+intocable** (y sin fuego amigo), **enemiga = objetivo**. Sin faccion, manda la `attitude` del
+mob, como siempre. `faction get`, `faction clear` y `faction list` completan el manejo, y todo
+es de administracion.
+
+## 7. Dos opciones utiles del mob
+
+```yaml
+# No molesta al pueblo: no apunta a aldeanos ni golems, y los golems no lo apuntan a el.
+village-friendly: true
+
+# Causas de dano que ignora. Vale en cualquier categoria.
+immune:
+  - fall
+  - potion
+```
+
+Ojo con `village-friendly`: que el mob no ataque ni sea atacado se arregla con la clave, pero
+que los aldeanos **no huyan** depende del **tipo de entidad** —huyen de zombis e illagers, no
+de esqueletos—. Para convivir con aldeanos, usa la familia **esqueleto**.
+
+Los detalles de ambas, en `../docs/el-archivo-de-un-mob.md`.

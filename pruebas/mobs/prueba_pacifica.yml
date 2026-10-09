@@ -1,0 +1,25 @@
+id: prueba_pacifica
+# Mob de prueba para 'village-friendly' e 'immune'. NO es contenido de juego.
+category: server
+display-name: '&aPrueba pacifica'
+type: SKELETON
+faction: orcos
+attitude: hostile
+burn-in-daylight: false
+ai: true
+
+# No molesta al pueblo: no apunta a aldeanos ni golems, y los golems no lo apuntan.
+village-friendly: true
+
+# Ignora el dano de caida y el de pociones.
+immune:
+  - fall
+  - potion
+
+attributes:
+  health: 40.0
+  damage: 2.0
+  speed: 0.25
+
+spawn:
+  natural: false
