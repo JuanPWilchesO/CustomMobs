@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.juanp.custommobs</groupId>
         <artifactId>CustomMobs</artifactId>
-        <version>0.3.0</version>
+        <version>0.3.1</version>
     </parent>
 
     <artifactId>CustomMobs-Core</artifactId>
@@ -42,6 +42,15 @@
             <groupId>me.libraryaddict</groupId>
             <artifactId>libsdisguises</artifactId>
             <version>${libsdisguises.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- WorldGuard: solo para leer las regiones del spawneo aleatorio. Opcional, y por
+             eso va en provided: sin el plugin, todo punto vale. -->
+        <dependency>
+            <groupId>com.sk89q.worldguard</groupId>
+            <artifactId>worldguard-bukkit</artifactId>
+            <version>${worldguard.version}</version>
             <scope>provided</scope>
         </dependency>
 

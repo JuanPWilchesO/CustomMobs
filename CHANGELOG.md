@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 — monstruos para los mobs de servidor, y regiones en el spawneo
+
+- **`attacks-monsters`**: los mobs de `category: server` ya pueden atacar a los **monstruos
+  hostiles vanilla**, sea cual sea su `attitude`. Antes solo lo hacian los `defender`, asi
+  que un `neutral` que se topaba con un zombi lo ignoraba.
+- **Regiones en el spawneo aleatorio (WorldGuard)**: dos claves en la seccion `spawn:` del mob:
+  `allowed-region` (si esta puesta, el mob solo aparece ahi; vacia = en cualquier parte) y
+  `deny-regions` (lista de regiones donde no aparece). Si el punto cae en varias regiones
+  nombradas y se contradicen, **manda la de mayor prioridad de WorldGuard**. Es una
+  integracion **opcional**: sin WorldGuard, todo punto vale y el plugin funciona igual.
+
 ## 0.3.0 — convivencia, inmunidades y facciones de jugador
 
 - **`village-friendly`**: el mob no apunta a aldeanos ni a golems, y los golems de hierro y

@@ -2,6 +2,7 @@ package com.juanp.custommobs.mob;
 
 import com.juanp.custommobs.CustomMobsPlugin;
 import com.juanp.custommobs.config.PluginConfig;
+import com.juanp.custommobs.region.RegionGate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -32,12 +33,15 @@ public final class NaturalSpawnTask extends BukkitRunnable {
     private final CustomMobsPlugin plugin;
     private final MobService service;
     private final MobRegistry registry;
+    private final RegionGate regions;
     private final Random random = new Random();
 
-    public NaturalSpawnTask(CustomMobsPlugin plugin, MobService service, MobRegistry registry) {
+    public NaturalSpawnTask(CustomMobsPlugin plugin, MobService service, MobRegistry registry,
+                            RegionGate regions) {
         this.plugin = plugin;
         this.service = service;
         this.registry = registry;
+        this.regions = regions;
     }
 
     @Override
@@ -108,6 +112,12 @@ public final class NaturalSpawnTask extends BukkitRunnable {
             double angle = this.random.nextDouble() * Math.PI * 2.0D;
             int x = player.getLocation().getBlockX() + (int) Math.round(Math.cos(angle) * distance);
             int z = player.getLocation().getBlockZ() + (int) Math.round(Math.sin(angle) * distance);
+            // Regiones (WorldGuard), si el mob las limita. Se mira antes de nada: es lo que
+            // mas descarta y sale mas barato que mirar el terreno.
+            Location candidate = new Location(world, x + 0.5D, 0.0D, z + 0.5D);
+            if (!this.regions.allows(candidate, spawn.allowedRegion(), spawn.denyRegions())) {
+                continue;
+            }
             // Superficie: es donde tiene sentido y donde no aparece dentro de una cueva.
             int y = world.getHighestBlockYAt(x, z) + 1;
             if (y < spawn.minY() || y > spawn.maxY()) {

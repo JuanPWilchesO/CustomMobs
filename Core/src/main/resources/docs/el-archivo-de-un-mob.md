@@ -243,6 +243,28 @@ spawn:
 | `cap` | tope de este mob natural vivo a la vez | `20` |
 | `worlds` | lista de mundos permitidos | todos |
 | `biomes` | lista de biomas permitidos | todos |
+| `allowed-region` | region de WorldGuard donde SI aparece | vacia: en cualquier parte |
+| `deny-regions` | lista de regiones donde NO aparece | vacia: ninguna vetada |
+
+### Region del spawneo (WorldGuard)
+
+```yaml
+spawn:
+  natural: true
+  allowed-region: parque      # si esta, SOLO aparece aqui
+  deny-regions:
+    - zona_pvp
+    - spawn
+```
+
+- `allowed-region` **vacia** = aparece en cualquier parte. Con una region, **solo** ahi.
+- `deny-regions` **vacia** = ninguna vetada. Con regiones, **no** aparece en ellas.
+- Si el punto cae en varias regiones nombradas y se contradicen, **manda la de mayor
+  prioridad de WorldGuard**. Asi la regla mas especifica gana, que es como se piensan las
+  regiones.
+
+Es una integracion **opcional**: sin WorldGuard instalado, todo punto vale y el plugin
+funciona exactamente igual. Los nombres de region son los de WorldGuard (`/rg list`).
 
 El ritmo y el tope global salen del config (`spawning`). Un mob natural es de **una sola
 vida** y **no deja spawner**.
@@ -263,6 +285,18 @@ immune:
 |---|---|---|
 | `village-friendly` | no apunta a aldeanos ni golems, y los golems no lo apuntan a el | `false` |
 | `immune` | lista de causas de dano que ignora | vacia |
+| `attacks-monsters` | ataca a los monstruos hostiles vanilla (`category: server`) | `false` |
+
+### Atacar monstruos
+
+```yaml
+attacks-monsters: true
+```
+
+Solo para mobs de `category: server`. Sin esta clave, un mob de servidor **solo** ataca a los
+monstruos vanilla si su `attitude` es `defender` —el defensor persigue a los que amenazan la
+zona—. Con `true`, los ataca cualquiera, sea `neutral` u `hostile`: util para un mob neutral
+que se defiende, o para uno hostil que ademas limpia la zona.
 
 Causas utiles de `immune`: `fall` (dano de caida), `potion` (atajo de `magic`, el dano de
 las pociones), `fire`, `lava`, `drowning`, `explosion`, `projectile`, `contact`... Se escribe

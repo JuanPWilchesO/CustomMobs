@@ -180,9 +180,13 @@ public final class TargetPolicy {
         if (candidate instanceof Player player) {
             return this.isHostileServerPlayer(soldier, player);
         }
-        // Un defensor persigue a los monstruos hostiles que amenazan la zona.
+        // Un defensor persigue a los monstruos hostiles que amenazan la zona. Y con
+        // 'attacks-monsters: true' tambien los ataca cualquier mob de servidor, sea cual sea
+        // su actitud: un neutral que se defiende de un monstruo, o un hostil que ademas
+        // limpia la zona.
         if (candidate instanceof Monster) {
-            return this.attitudeOf(soldier) == Attitude.DEFENDER;
+            return this.attitudeOf(soldier) == Attitude.DEFENDER
+                    || soldier.definition().attacksMonsters();
         }
         return false;
     }

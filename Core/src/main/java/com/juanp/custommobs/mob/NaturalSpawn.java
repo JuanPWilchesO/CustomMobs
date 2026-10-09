@@ -38,10 +38,12 @@ public record NaturalSpawn(
         int maxY,
         double minDistance,
         double maxDistance,
-        int cap
+        int cap,
+        String allowedRegion,
+        List<String> denyRegions
 ) {
 
     /** Lo que se usa cuando el mob no declara la seccion. */
     public static final NaturalSpawn NONE = new NaturalSpawn(false, List.of(), List.of(),
-            1, 1, 0.0D, "any", 0, 15, 0, 320, 24.0D, 96.0D, 20);
+            1, 1, 0.0D, "any", 0, 15, 0, 320, 24.0D, 96.0D, 20, "", List.of());
 }

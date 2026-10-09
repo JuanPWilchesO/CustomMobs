@@ -147,7 +147,8 @@ public final class MobLoader {
                 mount,
                 spawn,
                 cfg.getBoolean("village-friendly", false),
-                parseImmune(cfg)
+                parseImmune(cfg),
+                cfg.getBoolean("attacks-monsters", false)
         ));
     }
 
@@ -393,7 +394,9 @@ public final class MobLoader {
                 y == null ? 320 : y.getInt("max", 320),
                 distance == null ? 24.0D : Math.max(0.0D, distance.getDouble("min", 24.0D)),
                 distance == null ? 96.0D : Math.max(1.0D, distance.getDouble("max", 96.0D)),
-                Math.max(1, section.getInt("cap", 20)));
+                Math.max(1, section.getInt("cap", 20)),
+                section.getString("allowed-region", ""),
+                lowerList(section.getStringList("deny-regions")));
     }
 
     /** Lista de textos en minusculas, sin vacios. */

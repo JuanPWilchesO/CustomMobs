@@ -39,6 +39,7 @@ import com.juanp.custommobs.mob.MountEffectTask;
 import com.juanp.custommobs.mob.MountFrostTask;
 import com.juanp.custommobs.mob.NaturalSpawnTask;
 import com.juanp.custommobs.recall.RecallService;
+import com.juanp.custommobs.region.RegionGate;
 import com.juanp.custommobs.skill.SkillInteractListener;
 import com.juanp.custommobs.skill.SkillService;
 import com.juanp.custommobs.spawner.SpawnerListener;
@@ -208,7 +209,9 @@ public final class CustomMobsPlugin extends JavaPlugin {
         this.mountFrost.runTaskTimer(this, 1L, 1L);
 
         // Aparicion aleatoria de mobs de servidor, si alguno la pide en su yml.
-        this.naturalSpawn = new NaturalSpawnTask(this, this.mobService, this.registry);
+        // El cerco de regiones del spawneo aleatorio: WorldGuard si esta, abierto si no.
+        this.naturalSpawn = new NaturalSpawnTask(this, this.mobService, this.registry,
+                RegionGate.create(this));
         long spawnInterval = this.config.spawnIntervalSeconds() * 20L;
         this.naturalSpawn.runTaskTimer(this, spawnInterval, spawnInterval);
 
