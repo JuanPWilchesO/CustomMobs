@@ -247,6 +247,34 @@ spawn:
 El ritmo y el tope global salen del config (`spawning`). Un mob natural es de **una sola
 vida** y **no deja spawner**.
 
+## Convivencia y dano
+
+```yaml
+# No molesta al pueblo: no apunta a aldeanos ni a golems, y los golems no lo apuntan a el.
+village-friendly: true
+
+# Causas de dano que ignora. Vale en cualquier categoria.
+immune:
+  - fall
+  - potion
+```
+
+| Clave | Que hace | Por defecto |
+|---|---|---|
+| `village-friendly` | no apunta a aldeanos ni golems, y los golems no lo apuntan a el | `false` |
+| `immune` | lista de causas de dano que ignora | vacia |
+
+Causas utiles de `immune`: `fall` (dano de caida), `potion` (atajo de `magic`, el dano de
+las pociones), `fire`, `lava`, `drowning`, `explosion`, `projectile`, `contact`... Se escribe
+el nombre de la causa de Bukkit en minusculas; lo que no se reconoce se avisa y se descarta.
+
+> **Aviso sobre `village-friendly` y los aldeanos.** Que el mob **no ataque** a aldeanos y
+> golems, y que los golems **no lo ataquen**, se arregla con esta clave. Pero que los aldeanos
+> **no huyan** no: eso lo decide el **tipo de entidad**. Los aldeanos huyen de zombis e
+> illagers (y del ravager y los vex); de un **esqueleto no huyen**. Para un mob que conviva con
+> aldeanos, usa la familia **esqueleto** — aunque lo disfraces con LibsDisguises, el tipo real
+> es lo que cuenta.
+
 ## Crafteo
 
 ```yaml

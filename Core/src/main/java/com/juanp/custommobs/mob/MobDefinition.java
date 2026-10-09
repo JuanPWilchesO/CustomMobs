@@ -7,10 +7,12 @@ import com.juanp.custommobs.drop.DropSpec;
 import com.juanp.custommobs.skill.SkillSpec;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Definicion inmutable de un mob custom, cargada desde un archivo en {@code mobs/}.
@@ -73,7 +75,9 @@ public record MobDefinition(
         boolean clearVanillaDrops,
         Integer chunkRadius,
         MountSpec mount,
-        NaturalSpawn spawn
+        NaturalSpawn spawn,
+        boolean villageFriendly,
+        Set<EntityDamageEvent.DamageCause> immune
 ) {
 
     /** Vida maxima configurada, o 20 si no se especifico. */
@@ -104,5 +108,15 @@ public record MobDefinition(
     /** Efectos constantes de la montura; vacio si no es montura o no tiene. */
     public List<MountEffect> mountEffects() {
         return this.mount == null ? List.of() : this.mount.effects();
+    }
+
+    /**
+     * {@code true} si el mob ignora ese tipo de dano.
+     *
+     * <p>Sirve para cualquier categoria: montura, servidor, o mob de jugador anclado a el o
+     * a un bloque.
+     */
+    public boolean ignores(EntityDamageEvent.DamageCause cause) {
+        return this.immune.contains(cause);
     }
 }

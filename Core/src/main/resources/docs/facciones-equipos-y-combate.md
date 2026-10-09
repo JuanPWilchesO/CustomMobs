@@ -82,6 +82,34 @@ Un mob **no se dana con su propio bando**:
 Asi puedes pelear **al lado** de tus mobs sin herirlos. Es la misma regla de "aliado
 intocable" que usa la IA para elegir a quien atacar.
 
+## Facciones de jugador
+
+Un administrador puede meter a un jugador en una faccion:
+
+```
+/custommobs faction set <jugador> <faccion>
+```
+
+A partir de ahi, los mobs de `category: server` lo tratan por `factions.yml`, no por su
+actitud:
+
+| Relacion con la faccion del mob | Efecto |
+|---|---|
+| la **misma** faccion | intocable |
+| una faccion **aliada** | intocable |
+| una faccion **enemiga** | objetivo |
+| **neutral** | manda la `attitude` del mob, como siempre |
+
+Sin faccion asignada no cambia nada: manda la actitud.
+
+El **fuego amigo tambien se bloquea**: un jugador de la misma faccion que un mob —o de una
+faccion aliada— no le hace dano, ni el a el ni sus mobs al jugador, y eso vale aunque haya
+agredido antes.
+
+Se guarda en `data/player-factions.yml`, un fichero del propio plugin: **no hace falta
+LuckPerms**. `faction get`, `faction clear` y `faction list` completan el manejo, y todo ello
+es de administracion.
+
 ## Teams (opcional)
 
 Con **Teams** instalado, los jugadores se agrupan en bandos:

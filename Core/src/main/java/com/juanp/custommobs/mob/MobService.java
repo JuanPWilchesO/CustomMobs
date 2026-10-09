@@ -1221,14 +1221,24 @@ public final class MobService implements Listener {
      * misma faccion o de una aliada.
      */
     private boolean isProtectedFromServerMob(CustomMob customMob, LivingEntity candidate) {
-        if (candidate instanceof Player) {
-            return customMob.definition().attitude() == Attitude.DEFENDER;
+        String mine = customMob.definition().faction();
+        if (candidate instanceof Player player) {
+            if (customMob.definition().attitude() == Attitude.DEFENDER) {
+                return true;
+            }
+            // Un jugador de la misma faccion —o de una aliada— es de los suyos: ni el ni
+            // sus mobs le hacen dano.
+            Optional<String> theirs = this.plugin.playerFactions().of(player.getUniqueId());
+            if (mine != null && theirs.isPresent()) {
+                String other = theirs.get();
+                return mine.equals(other) || this.factions.isAlly(mine, other);
+            }
+            return false;
         }
         Optional<CustomMob> other = this.find(candidate.getUniqueId());
         if (other.isEmpty()) {
             return false;
         }
-        String mine = customMob.definition().faction();
         if (mine == null) {
             return false;
         }

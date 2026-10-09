@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — convivencia, inmunidades y facciones de jugador
+
+- **`village-friendly`**: el mob no apunta a aldeanos ni a golems, y los golems de hierro y
+  de nieve no lo apuntan a el. Ojo con la otra mitad: que los aldeanos **no huyan** depende
+  del **tipo de entidad** —huyen de zombis e illagers, no de esqueletos—, asi que para
+  convivir con aldeanos conviene usar la familia **esqueleto**.
+- **`immune`**: lista de causas de dano que el mob ignora, en **cualquier categoria** (montura,
+  servidor, o mob de jugador anclado a el o a un bloque): `fall`, `potion` (la causa `magic`),
+  `fire`, `drowning`, `lava`...
+- **Facciones de jugador**: comando `/custommobs faction <set|get|clear|list>`, de
+  administracion, guardado en `data/player-factions.yml` (fichero propio del plugin, sin
+  depender de LuckPerms). Con faccion asignada, los mobs de faccion tratan al jugador por
+  `factions.yml`: **los suyos y los aliados son intocables** —tambien sin fuego amigo— y los
+  enemigos son objetivo. Sin faccion, manda la actitud de siempre, asi que nada cambia.
+
 ## 0.2.2 — el paso helado, de verdad
 
 - **Paso helado de las monturas**: la 0.2.1 lo arreglo a medias. Faltaban tres cosas, y

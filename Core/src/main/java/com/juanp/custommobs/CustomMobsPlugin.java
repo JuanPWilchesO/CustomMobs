@@ -7,7 +7,9 @@ import com.juanp.custommobs.upgrade.UpgradeRegistry;
 import com.juanp.custommobs.upgrade.UpgradeService;
 import com.juanp.custommobs.api.CustomMobsApi;
 import com.juanp.custommobs.combat.AggroListener;
+import com.juanp.custommobs.combat.DamageImmunityListener;
 import com.juanp.custommobs.combat.FriendlyFireListener;
+import com.juanp.custommobs.combat.VillagePeaceListener;
 import com.juanp.custommobs.combat.TargetListener;
 import com.juanp.custommobs.audio.AmbientTask;
 import com.juanp.custommobs.audio.SoundListener;
@@ -23,6 +25,7 @@ import com.juanp.custommobs.docs.DocsInstaller;
 import com.juanp.custommobs.drop.DropListener;
 import com.juanp.custommobs.drop.DropService;
 import com.juanp.custommobs.faction.FactionBook;
+import com.juanp.custommobs.faction.PlayerFactions;
 import com.juanp.custommobs.group.GroupLink;
 import com.juanp.custommobs.group.GroupLinkResolver;
 import com.juanp.custommobs.impl.CustomMobsApiImpl;
@@ -78,6 +81,7 @@ public final class CustomMobsPlugin extends JavaPlugin {
     private TeamLink teamLink;
     private GroupLink groupLink;
     private FactionBook factions;
+    private PlayerFactions playerFactions;
     private DisguiseLink disguiseLink;
     private DropService dropService;
     private StyleService styleService;
@@ -121,6 +125,8 @@ public final class CustomMobsPlugin extends JavaPlugin {
         }
         this.factions = new FactionBook();
         this.factions.reload(this);
+        this.playerFactions = new PlayerFactions(this);
+        this.playerFactions.load();
 
         this.teamLink = TeamLinkResolver.resolve(this);
         this.groupLink = GroupLinkResolver.resolve(this);
@@ -161,6 +167,8 @@ public final class CustomMobsPlugin extends JavaPlugin {
         pluginManager.registerEvents(new TargetListener(this.mobService), this);
         pluginManager.registerEvents(new AggroListener(this.mobService), this);
         pluginManager.registerEvents(new FriendlyFireListener(this.mobService), this);
+        pluginManager.registerEvents(new VillagePeaceListener(this.mobService), this);
+        pluginManager.registerEvents(new DamageImmunityListener(this.mobService), this);
         pluginManager.registerEvents(new SoundListener(this.mobService, this.soundService), this);
         pluginManager.registerEvents(new DaylightListener(this.mobService), this);
         pluginManager.registerEvents(new SpawnerListener(this.mobService), this);
@@ -330,6 +338,11 @@ public final class CustomMobsPlugin extends JavaPlugin {
 
     public FactionBook factions() {
         return this.factions;
+    }
+
+    /** Facciones asignadas a jugadores, para las reglas de ataque por faccion. */
+    public PlayerFactions playerFactions() {
+        return this.playerFactions;
     }
 
     public DisguiseLink disguiseLink() {

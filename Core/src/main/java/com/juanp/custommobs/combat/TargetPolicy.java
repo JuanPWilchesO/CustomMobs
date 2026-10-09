@@ -3,11 +3,14 @@ package com.juanp.custommobs.combat;
 import com.juanp.custommobs.mob.Attitude;
 import com.juanp.custommobs.mob.CustomMob;
 import com.juanp.custommobs.mob.MobService;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.IronGolem;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Snowman;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -83,9 +86,19 @@ public final class TargetPolicy {
         if (soldier.isOwner(candidate.getUniqueId())) {
             return false;
         }
+        // Un mob amistoso con el pueblo no toca a la gente del pueblo.
+        if (soldier.definition().villageFriendly() && isVillageFolk(candidate)) {
+            return false;
+        }
         return soldier.definition().server()
                 ? this.isValidServerTarget(soldier, candidate)
                 : this.isValidPlayerMobTarget(soldier, candidate);
+    }
+
+    /** Aldeanos (y comerciantes) y golems: la gente del pueblo. */
+    private static boolean isVillageFolk(LivingEntity candidate) {
+        return candidate instanceof AbstractVillager || candidate instanceof IronGolem
+                || candidate instanceof Snowman;
     }
 
     // ------------------------------------------------------------------ mobs de jugador
@@ -197,6 +210,21 @@ public final class TargetPolicy {
     }
 
     private boolean isHostileServerPlayer(CustomMob soldier, Player player) {
+        // La faccion del jugador manda sobre la actitud: los suyos y los aliados son
+        // intocables, los enemigos son objetivo. Si el jugador no tiene faccion, o su
+        // faccion es neutral con la del mob, decide la actitud de siempre.
+        String mine = soldier.definition().faction();
+        Optional<String> theirs = this.service.plugin().playerFactions()
+                .of(player.getUniqueId());
+        if (mine != null && theirs.isPresent()) {
+            String other = theirs.get();
+            if (mine.equals(other) || this.service.factions().isAlly(mine, other)) {
+                return false;
+            }
+            if (this.service.factions().isEnemy(mine, other)) {
+                return true;
+            }
+        }
         return switch (this.attitudeOf(soldier)) {
             case HOSTILE -> true;
             case NEUTRAL, DEFENDER -> this.service.aggro()

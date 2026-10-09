@@ -16,6 +16,10 @@ Todos bajo `/custommobs` (alias `cmobs`, `cm`).
 | `cuota recontar <jugador>` | rehace la cuenta **sin tocar mobs** |
 | `cuota retirar <jugador>` | retira sus mobs y deja el cupo en cero (**destructivo**) |
 | `despedir <id\|todos>` | retira **tus** mobs; lo puede usar cualquier jugador con los suyos |
+| `faction set <jugador> <faccion>` | asigna faccion a un jugador (solo admin) |
+| `faction get <jugador>` | consulta su faccion |
+| `faction clear <jugador>` | se la quita |
+| `faction list` | lista los jugadores con faccion |
 | `item save <nombre>` | guarda el objeto de tu mano en el catalogo, con su NBT |
 | `item list` | lista los objetos guardados |
 | `item remove <nombre>` | borra uno del catalogo |

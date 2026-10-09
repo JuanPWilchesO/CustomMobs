@@ -8,12 +8,15 @@ import com.juanp.custommobs.skill.SkillEffect;
 import com.juanp.custommobs.skill.SkillSpec;
 import com.juanp.custommobs.skill.SkillTarget;
 import com.juanp.custommobs.skill.SkillTrigger;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -142,8 +145,43 @@ public final class MobLoader {
                 cfg.getBoolean("clear-vanilla-drops", false),
                 chunkRadius(cfg),
                 mount,
-                spawn
+                spawn,
+                cfg.getBoolean("village-friendly", false),
+                parseImmune(cfg)
         ));
+    }
+
+    /**
+     * Lee la lista {@code immune}: causas de dano que el mob ignora, en cualquier categoria.
+     *
+     * <p>Se escribe el nombre de la causa de Bukkit en minusculas ({@code fall}, {@code fire},
+     * {@code drowning}, {@code magic}...). {@code potion} es un atajo de {@code magic}, que es
+     * la causa del dano de las pociones. Lo que no se reconoce se avisa y se descarta: nunca
+     * tumba la carga del mob.
+     */
+    private static Set<EntityDamageEvent.DamageCause> parseImmune(ConfigurationSection cfg) {
+        List<String> raw = cfg.getStringList("immune");
+        if (raw.isEmpty()) {
+            return Set.of();
+        }
+        Set<EntityDamageEvent.DamageCause> causes = EnumSet.noneOf(EntityDamageEvent.DamageCause.class);
+        for (String value : raw) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            String clean = value.trim().toLowerCase(Locale.ROOT);
+            if (clean.equals("potion")) {
+                causes.add(EntityDamageEvent.DamageCause.MAGIC);
+                continue;
+            }
+            try {
+                causes.add(EntityDamageEvent.DamageCause.valueOf(clean.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ex) {
+                Bukkit.getLogger().warning("[CustomMobs] 'immune' no reconoce '" + value
+                        + "' en un mob; se descarta esa causa.");
+            }
+        }
+        return Set.copyOf(causes);
     }
 
     /**

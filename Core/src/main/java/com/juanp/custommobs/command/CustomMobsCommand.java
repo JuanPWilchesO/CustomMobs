@@ -6,8 +6,10 @@ import com.juanp.custommobs.style.MobStyle;
 import com.juanp.custommobs.team.TeamLink;
 import com.juanp.custommobs.mob.MobDefinition;
 import com.juanp.custommobs.spawner.SpawnerEntry;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -23,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -93,11 +96,96 @@ public final class CustomMobsCommand implements CommandExecutor, TabCompleter {
             case "book", "libro" -> this.book(sender, args);
             case "upgrade", "mejora" -> this.upgrade(sender, args);
             case "despedir", "dismiss" -> this.dismiss(sender, args);
+            case "faction", "faccion" -> this.faction(sender, args);
             case "color" -> this.setStyle(sender, args, "name");
             case "glow" -> this.setStyle(sender, args, "glow");
             default -> this.help(sender);
         }
         return true;
+    }
+
+    /**
+     * Asigna faccion a un jugador. Solo administracion: toca las reglas de ataque.
+     *
+     * <p>Con faccion, los mobs de faccion tratan al jugador por {@code factions.yml}: los
+     * suyos y los aliados son intocables, los enemigos son objetivo. Sin faccion, decide la
+     * actitud del mob, como hasta ahora.
+     */
+    private void faction(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(TAG + " Uso: /custommobs faction <set|get|clear|list>");
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ROOT);
+        if (action.equals("list")) {
+            Map<UUID, String> all = this.plugin.playerFactions().all();
+            if (all.isEmpty()) {
+                sender.sendMessage(TAG + " No hay ninguna faccion asignada.");
+                return;
+            }
+            sender.sendMessage(TAG + " Jugadores con faccion (" + all.size() + "):");
+            for (Map.Entry<UUID, String> entry : all.entrySet()) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(entry.getKey());
+                String label = player.getName() != null ? player.getName() : entry.getKey().toString();
+                sender.sendMessage(" - " + label + " -> " + entry.getValue());
+            }
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(TAG + " Uso: /custommobs faction " + action + " <jugador>"
+                    + (action.equals("set") ? " <faccion>" : ""));
+            return;
+        }
+        OfflinePlayer target = this.resolvePlayer(args[2]);
+        if (target == null) {
+            sender.sendMessage(TAG + " No encuentro a '" + args[2] + "'.");
+            return;
+        }
+        String label = target.getName() != null ? target.getName() : args[2];
+        switch (action) {
+            case "get" -> sender.sendMessage(TAG + " " + label + ": " + this.plugin.playerFactions()
+                    .of(target.getUniqueId()).orElse("sin faccion"));
+            case "clear" -> {
+                if (this.plugin.playerFactions().clear(target.getUniqueId())) {
+                    sender.sendMessage(TAG + " " + label + " ya no tiene faccion.");
+                } else {
+                    sender.sendMessage(TAG + " " + label + " no tenia faccion.");
+                }
+            }
+            case "set" -> {
+                if (args.length < 4) {
+                    sender.sendMessage(TAG + " Uso: /custommobs faction set <jugador> <faccion>");
+                    return;
+                }
+                String faction = args[3].toLowerCase(Locale.ROOT);
+                this.plugin.playerFactions().set(target.getUniqueId(), faction);
+                sender.sendMessage(TAG + " " + label + " ahora es de la faccion '" + faction + "'.");
+                if (!this.knownFaction(faction)) {
+                    sender.sendMessage(TAG + " Aviso: '" + faction + "' no sale en factions.yml"
+                            + " ni en ningun mob; comprueba la ortografia.");
+                }
+            }
+            default -> sender.sendMessage(TAG + " Uso: /custommobs faction <set|get|clear|list>");
+        }
+    }
+
+    /** Resuelve un jugador por nombre, conectado o no, sin bloquear el servidor. */
+    private OfflinePlayer resolvePlayer(String name) {
+        Player online = Bukkit.getPlayerExact(name);
+        if (online != null) {
+            return online;
+        }
+        return Bukkit.getOfflinePlayerIfCached(name);
+    }
+
+    /** {@code true} si esa faccion existe: aparece en la definicion de algun mob. */
+    private boolean knownFaction(String faction) {
+        for (MobDefinition definition : this.plugin.registry().all()) {
+            if (faction.equals(definition.faction())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void give(CommandSender sender, String[] args) {
