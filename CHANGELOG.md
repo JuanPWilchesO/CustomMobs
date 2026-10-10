@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3 — arreglo: aliados que se peleaban sin hacerse dano
+
+- **Los mobs del mismo bando —o de facciones aliadas— ya no se apuntan entre si, pase lo que
+  pase.** Antes, la venganza pesaba mas que la faccion: un golpe amistoso —que el fuego amigo
+  bloquea y por tanto **no hace dano**— dejaba igualmente la marca de agresion, y los dos mobs
+  se quedaban atacandose sin poder hacerse nada, trabados hasta que expiraba. Ahora la faccion
+  y la alianza se miran **antes** que la agresion, y ademas un golpe entre mobs del mismo bando
+  ya no marca agresion ninguna.
+
 ## 0.3.2 — el mob amistoso defiende al pueblo
 
 - **`village-friendly` ahora defiende a los aldeanos**, como un golem y mas radical: si un

@@ -53,8 +53,28 @@ public final class AggroListener implements Listener {
             if (!this.service.isProtectedSide(customMob, victim)) {
                 continue;
             }
+            // Un golpe entre mobs del mismo bando no cuenta: el fuego amigo lo bloquea, asi que
+            // no hay agresion que vengar. Marcarlo dejaba a los aliados apuntandose entre si.
+            if (this.friendlyMobHit(victim, attacker)) {
+                continue;
+            }
             this.aggro.mark(mob.getUniqueId(), attacker.getUniqueId(), duration);
         }
+    }
+
+    /** {@code true} si el que pego es un mob del mismo bando de la victima. */
+    private boolean friendlyMobHit(LivingEntity victim, LivingEntity attacker) {
+        CustomMob victimMob = this.service.find(victim.getUniqueId()).orElse(null);
+        CustomMob attackerMob = this.service.find(attacker.getUniqueId()).orElse(null);
+        if (victimMob == null || attackerMob == null) {
+            return false;
+        }
+        String mine = victimMob.definition().faction();
+        String theirs = attackerMob.definition().faction();
+        if (mine == null || theirs == null) {
+            return false;
+        }
+        return mine.equals(theirs) || this.service.factions().isAlly(mine, theirs);
     }
 
     /**

@@ -187,18 +187,20 @@ public final class TargetPolicy {
      * las enemigas son objetivo; entre neutrales solo cuenta la agresion recibida.
      */
     private boolean isHostileFactionMob(CustomMob soldier, CustomMob other) {
+        String mine = soldier.definition().faction();
+        String theirs = other.definition().faction();
+        // Mismo bando o aliados: intocables, pase lo que pase, y se mira ANTES que la agresion.
+        // Cuando iba despues, dos mobs del mismo bando que se habian marcado agresion se
+        // quedaban atacandose sin poder hacerse dano —el dano si esta bloqueado—, trabados
+        // para siempre. Es el fallo que se veia en el servidor: aliados peleandose de mentira.
+        if (mine != null && theirs != null
+                && (mine.equals(theirs) || this.service.factions().isAlly(mine, theirs))) {
+            return false;
+        }
         if (this.service.aggro().isHostile(soldier.entity().getUniqueId(), other.entity().getUniqueId())) {
             return true;
         }
-        String mine = soldier.definition().faction();
-        String theirs = other.definition().faction();
         if (mine == null || theirs == null) {
-            return false;
-        }
-        if (mine.equals(theirs)) {
-            return false;
-        }
-        if (this.service.factions().isAlly(mine, theirs)) {
             return false;
         }
         return this.service.factions().isEnemy(mine, theirs);
