@@ -3,6 +3,7 @@ package com.juanp.custommobs.mob;
 import com.juanp.custommobs.CustomMobsPlugin;
 import com.juanp.custommobs.combat.AggroRegistry;
 import com.juanp.custommobs.combat.TargetPolicy;
+import com.juanp.custommobs.combat.VillageFolk;
 import com.juanp.custommobs.config.PluginConfig;
 import com.juanp.custommobs.disguise.DisguiseLink;
 import com.juanp.custommobs.faction.FactionBook;

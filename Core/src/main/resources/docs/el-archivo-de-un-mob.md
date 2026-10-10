@@ -283,7 +283,7 @@ immune:
 
 | Clave | Que hace | Por defecto |
 |---|---|---|
-| `village-friendly` | no apunta a aldeanos ni golems, y los golems no lo apuntan a el | `false` |
+| `village-friendly` | defiende al pueblo: no ataca a aldeanos ni golems, los golems no lo apuntan a el, y va a por quien le pegue a un aldeano | `false` |
 | `immune` | lista de causas de dano que ignora | vacia |
 | `attacks-monsters` | ataca a los monstruos hostiles vanilla (`category: server`) | `false` |
 
@@ -302,12 +302,25 @@ Causas utiles de `immune`: `fall` (dano de caida), `potion` (atajo de `magic`, e
 las pociones), `fire`, `lava`, `drowning`, `explosion`, `projectile`, `contact`... Se escribe
 el nombre de la causa de Bukkit en minusculas; lo que no se reconoce se avisa y se descarta.
 
-> **Aviso sobre `village-friendly` y los aldeanos.** Que el mob **no ataque** a aldeanos y
-> golems, y que los golems **no lo ataquen**, se arregla con esta clave. Pero que los aldeanos
-> **no huyan** no: eso lo decide el **tipo de entidad**. Los aldeanos huyen de zombis e
-> illagers (y del ravager y los vex); de un **esqueleto no huyen**. Para un mob que conviva con
-> aldeanos, usa la familia **esqueleto** — aunque lo disfraces con LibsDisguises, el tipo real
-> es lo que cuenta.
+### Que hace exactamente `village-friendly`
+
+| Comportamiento | Sin la clave | Con la clave |
+|---|---|---|
+| Ataca a aldeanos o golems | si | **no** |
+| Un golem lo ataca a el | si | **no** |
+| Si le pegan a un aldeano cerca | lo ignora | **va a por el agresor** |
+
+Esa ultima es mas radical que un golem: reacciona **cualquier** mob amistoso que lo vea, sea
+cual sea su `attitude` —incluso un `neutral` o un `defender`—, porque la agresion pesa mas que
+la actitud. Y cuenta igual si le pegan al aldeano con una flecha. La hostilidad dura lo que
+diga `aggro-duration-seconds` del config y se percibe dentro de `aggro-watch-radius`.
+
+> **Aviso sobre el miedo de los aldeanos.** Que el mob **no ataque** a aldeanos y golems, que
+> los golems **no lo ataquen** y que **defienda** al pueblo se arregla con esta clave. Pero que
+> los aldeanos **no huyan** no: eso lo decide el **tipo de entidad**. Huyen de zombis e illagers
+> (y del ravager y los vex); de un **esqueleto no huyen**. Para un mob que conviva con aldeanos,
+> usa la familia **esqueleto** — y si quieres otra apariencia, disfrazalo: el sistema de disfraces
+> admite cualquier tipo de mob.
 
 ## Crafteo
 

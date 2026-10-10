@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.2 — el mob amistoso defiende al pueblo
+
+- **`village-friendly` ahora defiende a los aldeanos**, como un golem y mas radical: si un
+  jugador le pega a un aldeano cerca —a mano o con un proyectil— todos los mobs amistosos que
+  lo vean se lo apuntan como agresion y van a por el. Y reacciona **cualquier** mob amistoso,
+  sea cual sea su `attitude` —incluso un `neutral` o un `defender`—: la agresion pesa mas que
+  la actitud. Dura lo que diga `aggro-duration-seconds` y se percibe dentro de
+  `aggro-watch-radius`.
+- Recordatorio: que los aldeanos **no huyan** sigue dependiendo del **tipo de entidad** (no
+  huyen de esqueletos). Si quieres otra apariencia, usa un tipo que no asusten y disfrazalo:
+  el sistema de disfraces admite cualquier tipo de mob.
+
 ## 0.3.1 — monstruos para los mobs de servidor, y regiones en el spawneo
 
 - **`attacks-monsters`**: los mobs de `category: server` ya pueden atacar a los **monstruos
