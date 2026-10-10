@@ -12,7 +12,9 @@ public enum SkillEffect {
     /** El mob habla: el texto va a los jugadores dentro del radio. */
     MESSAGE,
     /** Aplica un efecto de pocion a cada objetivo. */
-    POTION;
+    POTION,
+    /** Invoca copias de otra definicion alrededor del mob. */
+    SUMMON;
 
     public static SkillEffect parse(String raw) {
         if (raw == null || raw.isBlank()) {

@@ -1,8 +1,12 @@
 package com.juanp.custommobs.skill;
 
 import com.juanp.custommobs.mob.CustomMob;
+import com.juanp.custommobs.mob.MobDefinition;
 import com.juanp.custommobs.mob.MobService;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -33,6 +37,9 @@ public final class SkillService extends BukkitRunnable {
 
     /** Radio por defecto cuando una skill de MESSAGE no especifica uno util. */
     private static final double DEFAULT_SPEAK_RANGE = 20.0D;
+
+    /** Tope de invocados por uso, para que un yml descuidado no suelte una horda. */
+    private static final int MAX_SUMMON = 10;
 
     private final MobService service;
     private final Random random = new Random();
@@ -97,6 +104,16 @@ public final class SkillService extends BukkitRunnable {
             for (Player listener : listeners) {
                 listener.sendMessage(spoken);
             }
+            return;
+        }
+
+        // La invocacion no va contra un objetivo: pone copias alrededor del propio mob. Si no
+        // encuentra sitio, se reintenta en el siguiente ciclo sin gastar el cooldown.
+        if (skill.effect() == SkillEffect.SUMMON) {
+            if (!this.summon(customMob, skill)) {
+                return;
+            }
+            perMob.put(skill.id(), now + skill.cooldownSeconds() * 1000L);
             return;
         }
 
@@ -238,6 +255,60 @@ public final class SkillService extends BukkitRunnable {
         for (LivingEntity target : this.resolve(customMob, skill)) {
             this.apply(customMob, skill, target);
         }
+    }
+
+    // ------------------------------------------------------------------ invocacion
+
+    /**
+     * Invoca hasta {@code amount} copias de la definicion {@code summon}, alrededor del mob.
+     *
+     * <p>Los invocados toman el dueno del invocador: si el que invoca es de un jugador, los
+     * suyos tambien. Los mobs de servidor invocan mobs libres.
+     *
+     * @return {@code true} si aparecio al menos uno
+     */
+    private boolean summon(CustomMob caster, SkillSpec skill) {
+        if (skill.summon() == null || skill.summon().isBlank()) {
+            return false;
+        }
+        MobDefinition definition = this.service.plugin().registry().get(skill.summon()).orElse(null);
+        if (definition == null) {
+            return false;
+        }
+        int count = Math.max(1, Math.min(MAX_SUMMON, (int) Math.round(skill.amount())));
+        double range = Math.max(1.0D, skill.range());
+        LivingEntity entity = caster.entity();
+        World world = entity.getWorld();
+        Player owner = caster.ownerId() == null
+                ? null : this.service.plugin().getServer().getPlayer(caster.ownerId());
+        int placed = 0;
+        for (int i = 0; i < count; i++) {
+            Location spot = this.summonSpot(world, entity.getLocation(), range);
+            if (spot == null) {
+                continue;
+            }
+            this.service.spawn(definition, spot, owner);
+            placed++;
+        }
+        return placed > 0;
+    }
+
+    /** Un sitio libre cerca del invocador, o {@code null} si no lo encuentra. */
+    private Location summonSpot(World world, Location around, double range) {
+        for (int tries = 0; tries < 8; tries++) {
+            double angle = this.random.nextDouble() * Math.PI * 2.0D;
+            double distance = 1.0D + this.random.nextDouble() * Math.max(0.0D, range - 1.0D);
+            int x = around.getBlockX() + (int) Math.round(Math.cos(angle) * distance);
+            int z = around.getBlockZ() + (int) Math.round(Math.sin(angle) * distance);
+            int y = world.getHighestBlockYAt(x, z) + 1;
+            Block ground = world.getBlockAt(x, y - 1, z);
+            Block air = world.getBlockAt(x, y, z);
+            if (!ground.getType().isSolid() || !air.isPassable()) {
+                continue;
+            }
+            return new Location(world, x + 0.5D, y, z + 0.5D);
+        }
+        return null;
     }
 
     // ------------------------------------------------------------------ auxiliares

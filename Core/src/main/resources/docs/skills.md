@@ -42,7 +42,7 @@ skills:
 | Campo | Valores | Por defecto |
 |---|---|---|
 | `id` | texto unico dentro del mob | — |
-| `effect` | `damage` \| `heal` \| `message` \| `potion` | — |
+| `effect` | `damage` \| `heal` \| `message` \| `potion` \| `summon` | — |
 | `target` | `self` \| `owner` \| `target` \| `enemies` \| `allies` | — |
 | `mode` | `pasiva` \| `activa` \| `interaccion` | `pasiva` |
 | `range` | bloques (tope 32) | `8.0` |
@@ -51,6 +51,7 @@ skills:
 | `amount` | dano o curacion | `0.0` |
 | `message` | texto con `&` | — |
 | `potion` | `poison`, `speed`, `weakness`… | — |
+| `summon` | la definicion que invoca (SUMMON), tal como su `id` | — |
 | `potion-duration-seconds` | entero | `5` |
 | `potion-amplifier` | entero (`0` = nivel I) | `0` |
 
@@ -93,7 +94,31 @@ En las skills de **interaccion**, `effect: message` va **solo a quien hizo clic*
 el que este cerca), y el texto admite `{jugador}` ademas de `{mob}`. Si el jugador trae un
 huevo custom en la mano, ese clic es del huevo: la interaccion no se dispara.
 
-## Los cuatro efectos
+## Invocar (`effect: summon`)
+
+El mob **invoca copias de otra definicion a su alrededor**. No va contra un objetivo: usa
+`amount` como cuantas invoca y `range` como el radio donde aparecen.
+
+```yaml
+skills:
+  - id: invocar
+    mode: pasiva
+    effect: summon
+    target: self        # se ignora: siempre invoca alrededor del propio mob
+    summon: esbirro     # el id de la definicion que aparece
+    amount: 3           # cuantos (por defecto 1; tope 10 por uso)
+    range: 6.0          # radio donde aparecen
+    cooldown-seconds: 30
+```
+
+- Los invocados toman el **dueno del invocador**: si el que invoca es de un jugador, los suyos
+  tambien. Un mob de servidor invoca mobs libres.
+- Aparecen en el **suelo mas alto** de su columna, buscando un hueco con suelo solido debajo;
+  si no encuentran sitio, **no se gasta el cooldown** y se reintenta.
+- El tope de 10 por uso esta para que un yml descuidado no suelte una horda: el ritmo lo marca
+  `cooldown-seconds`.
+
+## Los cinco efectos
 
 | `effect` | Hace |
 |---|---|
@@ -101,6 +126,7 @@ huevo custom en la mano, ese clic es del huevo: la interaccion no se dispara.
 | `heal` | suma `amount` de vida al objetivo |
 | `message` | manda un texto a los jugadores en rango |
 | `potion` | aplica `potion` durante `potion-duration-seconds`, a nivel `potion-amplifier` |
+| `summon` | invoca copias de otra definicion alrededor del mob |
 
 ## Los cinco objetivos
 

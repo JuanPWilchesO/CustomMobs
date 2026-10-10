@@ -69,6 +69,25 @@ skills:
 | `message` | manda un texto a los jugadores en rango |
 | `potion` | aplica `potion` durante `potion-duration-seconds` |
 
+## Invocar a otros
+
+Un mob puede **traer refuerzos**: con `effect: summon` invoca copias de otra definicion a su
+alrededor.
+
+```yaml
+skills:
+  - id: invocar
+    mode: pasiva
+    effect: summon
+    summon: esbirro     # el id de la definicion que aparece
+    amount: 3           # cuantas (tope 10 por uso)
+    range: 6.0          # radio donde aparecen
+    cooldown-seconds: 30
+```
+
+El `target` se ignora: siempre invoca alrededor del propio mob. Los invocados toman el dueno
+del invocador. Ver `../docs/skills.md`.
+
 ## 3. Los cinco objetivos
 
 `self`, `owner`, `target`, `enemies`, `allies`. En `effect: message` el objetivo

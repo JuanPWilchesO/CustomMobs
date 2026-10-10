@@ -345,7 +345,8 @@ public final class MobLoader {
                 message == null ? null : Texts.color(message),
                 normalize(asString(entry.get("potion"))),
                 (int) Math.max(1L, Math.round(asNumber(entry.get("potion-duration-seconds"), 5.0D))),
-                (int) Math.max(0L, Math.round(asNumber(entry.get("potion-amplifier"), 0.0D)))
+                (int) Math.max(0L, Math.round(asNumber(entry.get("potion-amplifier"), 0.0D))),
+                normalize(asString(entry.get("summon")))
         );
     }
 

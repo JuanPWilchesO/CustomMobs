@@ -20,6 +20,7 @@ package com.juanp.custommobs.skill;
  * @param potion                efecto de pocion (POTION), tal como {@code POISON}
  * @param potionDurationSeconds duracion del efecto (POTION)
  * @param potionAmplifier       nivel del efecto, 0 = nivel I (POTION)
+ * @param summon                definicion que invoca (SUMMON), como aparezca en su id
  */
 public record SkillSpec(
         String id,
@@ -33,7 +34,8 @@ public record SkillSpec(
         String message,
         String potion,
         int potionDurationSeconds,
-        int potionAmplifier
+        int potionAmplifier,
+        String summon
 ) {
 
     public boolean hasMessage() {
